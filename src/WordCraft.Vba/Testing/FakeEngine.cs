@@ -293,10 +293,21 @@ public sealed class FakeEngine : IEngine
             for (int c = s; c < e; c++)
             {
                 var merged = para.Chars[c] is string j ? JsonNode.Parse(j)!.AsObject() : [];
-                foreach (var (k, v) in props) merged[k] = v?.DeepClone();
+                foreach (var (k, v) in props) merged[k] = k == "color" ? ReadBackColor(v) : v?.DeepClone();
                 para.Chars[c] = merged.ToJsonString();
             }
         }
+    }
+
+    /// <summary>WordCraft stores "RRGGBB" and reads it back as {"Rgb": [r, g, b]}; "Auto" stays "Auto".</summary>
+    static JsonNode? ReadBackColor(JsonNode? v)
+    {
+        if (v is JsonValue s && s.TryGetValue<string>(out var hex) && !hex.Equals("auto", StringComparison.OrdinalIgnoreCase))
+        {
+            int n = Convert.ToInt32(hex.TrimStart('#'), 16);
+            return new JsonObject { ["Rgb"] = new JsonArray((n >> 16) & 0xFF, (n >> 8) & 0xFF, n & 0xFF) };
+        }
+        return v?.DeepClone();
     }
 
     JsonObject ReplaceAll(JsonObject p)

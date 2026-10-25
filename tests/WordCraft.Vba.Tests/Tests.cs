@@ -22,7 +22,9 @@ foreach (var m in typeof(Tests).GetMethods(BindingFlags.Public | BindingFlags.St
         failed++;
         Console.WriteLine($"  FAIL {m.Name}: {e.InnerException?.Message}");
     }
+    finally { Probe.DisposeAll(); }
 }
+Console.WriteLine(Probe.Real ? $"engine: WordCraft ({Probe.Cli})" : "engine: FakeEngine");
 Console.WriteLine($"{passed} passed, {failed} failed");
 return failed == 0 ? 0 : 1;
 
@@ -55,13 +57,13 @@ static class Assert
 
 static class Tests
 {
-    static (FakeEngine Engine, Application App) Open(params string[] paragraphs)
+    static (Probe Engine, Application App) Open(params string[] paragraphs)
     {
-        var engine = new FakeEngine(paragraphs);
-        return (engine, new Application(engine));
+        var probe = Probe.Create(paragraphs);
+        return (probe, new Application(probe.Engine));
     }
 
-    static FakeEngine RunVba(string source, string macro, params string[] paragraphs)
+    static Probe RunVba(string source, string macro, params string[] paragraphs)
     {
         var (engine, app) = Open(paragraphs);
         var result = MacroCompiler.Compile([new VbaModule("Module1", VbaModuleKind.Standard, source)]);
@@ -219,7 +221,7 @@ static class Tests
         Assert.Equal("Alpha beta", r.Text);
         r.InsertParagraphAfter();
         r.InsertAfter("Gamma");
-        Assert.Equal(["Alpha beta", "Gamma"], engine.Paragraphs.ToArray());
+        Assert.Equal(["Alpha beta", "Gamma"], engine.Paragraphs);
         Assert.Equal("Alpha beta\rGamma", r.Text);
     }
 
@@ -231,7 +233,7 @@ static class Tests
         r.Font.Bold = true;
         r.Font.Color = 255; // RGB(255, 0, 0)
         Assert.Equal(true, engine.CharProps(0, 6)["bold"]!.GetValue<bool>());
-        Assert.Equal("FF0000", engine.CharProps(0, 9)["color"]!.GetValue<string>());
+        Assert.Equal("[255,0,0]", engine.CharProps(0, 9)["color"]!["Rgb"]!.ToJsonString(), "WordCraft reads colours back as {Rgb: [r, g, b]}");
         Assert.True(engine.CharProps(0, 10)["bold"] is null, "the character after the range is untouched");
         Assert.Equal(-1, (int)r.Font.Bold);
         Assert.Equal(0, (int)doc.Range(0, 5).Font.Bold);
@@ -274,7 +276,7 @@ static class Tests
         var (engine, app) = Open("x x x", "x x");
         var r = app.ActiveDocument.Range(2, 5); // the last two x's of paragraph one
         r.Find.Execute(FindText: "x", ReplaceWith: "y", Replace: WdConstants.wdReplaceAll);
-        Assert.Equal(["x y y", "x x"], engine.Paragraphs.ToArray());
+        Assert.Equal(["x y y", "x x"], engine.Paragraphs);
         Assert.True(!engine.Log.Contains("edit.replaceAll"), "a partial range is replaced match by match");
     }
 
@@ -288,7 +290,7 @@ static class Tests
         f.Wrap = WdConstants.wdFindContinue;
         app.Selection.Collapse();
         Assert.True(f.Execute(Replace: WdConstants.wdReplaceAll), "found");
-        Assert.Equal(["the cat", "the end"], engine.Paragraphs.ToArray());
+        Assert.Equal(["the cat", "the end"], engine.Paragraphs);
         Assert.True(engine.Log.Contains("edit.replaceAll"), "one engine Replace All (one Undo step)");
     }
 
@@ -300,7 +302,7 @@ static class Tests
         Assert.Equal("Call (555) 1234 or 555-9876.", engine.Paragraphs[0]);
         var all = app.ActiveDocument.Content;
         all.Find.Execute(FindText: " or ", ReplaceWith: "^p", Replace: WdConstants.wdReplaceOne);
-        Assert.Equal(["Call (555) 1234", "555-9876."], engine.Paragraphs.ToArray());
+        Assert.Equal(["Call (555) 1234", "555-9876."], engine.Paragraphs);
         var w = app.ActiveDocument.Content;
         Assert.True(w.Find.Execute(FindText: "<[0-9]@>", MatchWildcards: true) && w.Text == "555", "word-boundary wildcards");
     }
@@ -312,7 +314,7 @@ static class Tests
         s.TypeText("Line one");
         s.TypeParagraph();
         s.TypeText("Line two");
-        Assert.Equal(["Line one", "Line two"], engine.Paragraphs.ToArray());
+        Assert.Equal(["Line one", "Line two"], engine.Paragraphs);
         s.HomeKey(WdConstants.wdStory);
         s.EndKey(WdConstants.wdLine, WdConstants.wdExtend);
         Assert.Equal("Line one", s.Text);
@@ -350,8 +352,7 @@ static class Tests
 
     public static void Vba_sample_project_runs()
     {
-        var engine = new FakeEngine("Introduction to Acme  widgets", "Section 1 Overview", "The Acme team  ships. acme is not Acme.");
-        var app = new Application(engine);
+        var (engine, app) = Open("Introduction to Acme  widgets", "Section 1 Overview", "The Acme team  ships. acme is not Acme.");
         var result = MacroCompiler.Compile([VbaModule.FromFile(Path.Combine(AppContext.BaseDirectory, "samples", "Cleanup.bas"))]);
         Assert.True(result.Success, string.Join("; ", result.Diagnostics));
         using var project = result.Project!;
@@ -376,7 +377,7 @@ static class Tests
                 d.Paragraphs(2).Range.InsertBefore "> "
             End Sub
             """, "Go", "hello there", "quoted");
-        Assert.Equal(["HELLO there", "> quoted"], engine.Paragraphs.ToArray());
+        Assert.Equal(["HELLO there", "> quoted"], engine.Paragraphs);
     }
 
     public static void Vba_on_error_resume_next_skips_object_model_errors()

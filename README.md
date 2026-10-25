@@ -2,7 +2,7 @@
 
 Run Word VBA macros against [WordCraft](https://github.com/storytold/wordcraft). VBA is transpiled to VB.NET, compiled in memory with Roslyn, checked against an allow-list, and run against a Word object model implemented over WordCraft's command protocol.
 
-**Status:** spike. The object model has been tested against an in-memory engine that mimics WordCraft's command shapes; it has not yet been run against a real WordCraft build.
+**Status:** spike. The 24 tests pass against real WordCraft 0.10 (headless `wordcraft-cli mcp`) and against the in-memory `FakeEngine`.
 
 ```
 VBA (.bas/.cls) ──► Transpiler ──► VB.NET ──► Roslyn (Option Strict Off) ──► MacroSecurity ──► run
@@ -20,7 +20,8 @@ Requires the .NET 8 SDK. No NuGet packages: the VB compiler comes from the SDK (
 
 ```sh
 dotnet build
-dotnet tests/WordCraft.Vba.Tests/bin/Debug/net8.0/WordCraft.Vba.Tests.dll   # 24 tests
+dotnet tests/WordCraft.Vba.Tests/bin/Debug/net8.0/WordCraft.Vba.Tests.dll   # 24 tests on FakeEngine
+WCVBA_CLI=/path/to/wordcraft-cli dotnet tests/WordCraft.Vba.Tests/bin/Debug/net8.0/WordCraft.Vba.Tests.dll   # same tests on WordCraft
 
 dotnet run --project src/WordCraft.Vba -- transpile samples/Cleanup.bas
 dotnet run --project src/WordCraft.Vba -- check samples/Evil.bas            # rejected
@@ -64,7 +65,7 @@ Covers: `Integer`/`Long`/`Currency`/`Variant` widths, ByRef by default, Optional
 
 ## Known gaps
 
-- Not yet run against a real WordCraft build.
+- Only the headless transport (`--cli`) has been tested; the control channel to a running window (`--connect`) has not.
 - `Property Get/Let/Set`, UserForms, events (`Document_Open`, `AutoOpen` auto-run), reading `vbaProject.bin` from .docm.
 - Headers, footers, notes, fields as Word counts them (WordCraft shows a field's result), tables (`Tables`, `Cells`), `Font.Size`/`Name` from styles (only explicit run formatting is read), `Find` with formatting.
 - `(1 To n)` arrays become 0-based arrays one element longer: `LBound` is 0 and `For Each` sees an extra empty first element.

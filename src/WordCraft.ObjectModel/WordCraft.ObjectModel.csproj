@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>WordCraft.ObjectModel</RootNamespace>
+    <!-- Parameter names follow Word's object model (FindText, ReplaceWith...) so VBA named arguments bind. -->
+    <NoWarn>$(NoWarn);CA1707;IDE1006</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WordCraft.Vba.Tests" />
+  </ItemGroup>
+
+</Project>

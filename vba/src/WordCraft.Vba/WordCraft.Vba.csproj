@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- The .NET the installed SDK ships (8, 9, 10…): the VB compiler comes from that SDK and is
+         built for it, so the target must match (an SDK 10 compiler can't build for .NET 8). -->
+    <TargetFramework>net$(BundledNETCoreAppTargetFrameworkVersion)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>wcvba</AssemblyName>

@@ -18,14 +18,14 @@ VBA (.bas/.cls) ──► Transpiler ──► VB.NET ──► Roslyn (Option S
 
 ## Quick start
 
-Requires a .NET 8 (or newer) SDK. There are no package dependencies: the VB compiler comes from the SDK (`RoslynDir` overrides it). Restore still fetches the .NET 8 targeting packs from nuget.org when the SDK doesn't include them (distro SDKs, or a .NET 9/10 SDK building for .NET 8). Offline, with packs already installed, restore with a config that clears the sources: `dotnet restore --configfile <file with <packageSources><clear/></packageSources>>`.
+Requires a .NET 8 or newer SDK. There are no package dependencies: the VB compiler comes from the SDK (`RoslynDir` overrides it), so the projects target the .NET that SDK ships (`net8.0` with SDK 8, `net10.0` with SDK 10) and run on it.
 
 ```sh
 cd vba
 dotnet build
-dotnet tests/WordCraft.Vba.Tests/bin/Debug/net8.0/WordCraft.Vba.Tests.dll   # on FakeEngine
+dotnet run --project tests/WordCraft.Vba.Tests   # on FakeEngine
 cargo build --release -p wordcraft-cli --manifest-path ../Cargo.toml
-WCVBA_CLI=../target/release/wordcraft-cli dotnet tests/WordCraft.Vba.Tests/bin/Debug/net8.0/WordCraft.Vba.Tests.dll   # same tests on Nisaba
+WCVBA_CLI=../target/release/wordcraft-cli dotnet run --project tests/WordCraft.Vba.Tests   # same tests on Nisaba
 
 dotnet run --project src/WordCraft.Vba -- transpile samples/Cleanup.bas
 dotnet run --project src/WordCraft.Vba -- check samples/Evil.bas            # rejected

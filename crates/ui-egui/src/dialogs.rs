@@ -2718,22 +2718,20 @@ fn body(app: &mut WordApp, ui: &mut Ui, d: &mut Dialog) -> bool {
                 1 => crate::credits::contributors_ui(ui),
                 2 => crate::credits::models_ui(ui),
                 _ => {
-                    ui.label(egui::RichText::new(tl!("WordCraft")).font(semibold(22.0)));
+                    ui.label(egui::RichText::new(wordcraft_brand::NAME).font(semibold(22.0)));
                     let build = option_env!("WORDCRAFT_BUILD_SHA").map(|s| s.get(..8).unwrap_or(s)).unwrap_or(tl!("development build"));
                     ui.label(crate::i18n::fmt(tl!("Version {version} ({build})"), &[("version", env!("CARGO_PKG_VERSION")), ("build", build)]));
-                    ui.label(tl!(
-                        "A free, open-source word processor written from scratch in Rust.\nPart of the Crafting Apps from the ArtCraft team."
-                    ));
+                    ui.label(tl!("A free, open-source word processor written from scratch in Rust."));
+                    // A factual statement of origin, with no upstream logos or links that suggest endorsement.
+                    ui.label(format!("Based on {}.", wordcraft_brand::UPSTREAM_NAME));
                     ui.add_space(6.0);
-                    ui.hyperlink_to(tl!("getartcraft.com/apps/wordcraft"), "https://getartcraft.com/apps/wordcraft");
-                    ui.hyperlink_to(tl!("Join us on Discord: discord.gg/artcraft"), "https://discord.gg/artcraft");
-                    ui.hyperlink_to(tl!("Source code: github.com/storytold/wordcraft"), "https://github.com/storytold/wordcraft");
-                    ui.add_space(6.0);
-                    ui.label(
-                        egui::RichText::new(tl!("MIT OR Apache-2.0. Copyright (c) 2026 ArtCraft Team and the WordCraft contributors."))
-                            .small()
-                            .weak(),
+                    ui.hyperlink_to(wordcraft_brand::HOMEPAGE.trim_start_matches("https://"), wordcraft_brand::HOMEPAGE);
+                    ui.hyperlink_to(
+                        format!("{}: {}", wordcraft_brand::UPSTREAM_NAME, wordcraft_brand::UPSTREAM_HOMEPAGE.trim_start_matches("https://")),
+                        wordcraft_brand::UPSTREAM_HOMEPAGE,
                     );
+                    ui.add_space(6.0);
+                    ui.label(egui::RichText::new(wordcraft_brand::COPYRIGHT).small().weak());
                 }
             }
             let (ok, cancel) = buttons(ui, tl!("Close"));

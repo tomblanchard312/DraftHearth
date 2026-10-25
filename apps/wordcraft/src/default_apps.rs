@@ -6,7 +6,7 @@
 //! - **Windows** doesn't let apps set defaults: it opens Settings › Default apps on WordCraft's
 //!   page (`ms-settings:defaultapps?registeredAppMachine=WordCraft`; Windows 10 ignores the query
 //!   and shows the Default apps list), where the user picks WordCraft per type.
-//! - **Linux and BSD**: `xdg-mime default ai.storyteller.wordcraft.desktop <types>` for
+//! - **Linux and BSD**: `xdg-mime default io.github.tomblanchard312.Nisaba.desktop <types>` for
 //!   [`WORD_MIME_TYPES`], which writes the user's `mimeapps.list`. Only when the desktop entry is
 //!   installed (deb, rpm, Flatpak; a bare AppImage has none), and not from inside the Flatpak
 //!   sandbox, which can't change the host's defaults.
@@ -32,7 +32,9 @@ pub fn hook() -> Option<Hook> {
 
 /// The desktop entry the Linux packages install, and the Flatpak's app id.
 #[cfg(any(all(unix, not(target_os = "macos")), test))]
-const DESKTOP_ID: &str = "ai.storyteller.wordcraft.desktop";
+fn desktop_id() -> String {
+    format!("{}.desktop", wordcraft_brand::APP_ID)
+}
 
 /// The types the button makes WordCraft the default for on Linux and BSD: Word documents and
 /// templates (also macro-enabled and legacy), RTF and ODT. The same set the Windows installer
@@ -84,7 +86,8 @@ mod windows {
 
     /// Settings › Default apps, on the page of the app registered as `WordCraft` under
     /// `HKLM\Software\RegisteredApplications` (the MSI writes it).
-    const SETTINGS_URI: &str = "ms-settings:defaultapps?registeredAppMachine=WordCraft";
+    // Matches the RegisteredApplications name in packaging/windows/wordcraft.wxs.
+    const SETTINGS_URI: &str = "ms-settings:defaultapps?registeredAppMachine=Nisaba";
 
     pub(super) fn open_default_apps() -> Result<DefaultApp, String> {
         open::that_detached(SETTINGS_URI).map_err(|e| format!("couldn't open Settings: {e}"))?;
@@ -98,7 +101,7 @@ mod xdg {
 
     use wordcraft_ui_egui::DefaultApp;
 
-    use super::{DESKTOP_ID, application_dirs, xdg_mime_args};
+    use super::{application_dirs, desktop_id, xdg_mime_args};
 
     /// The longest error text from `xdg-mime` shown in the status bar.
     const MAX_ERROR: usize = 200;
@@ -111,10 +114,11 @@ mod xdg {
         }
         let var = |k: &str| std::env::var(k).ok();
         let dirs = application_dirs(var("XDG_DATA_HOME").as_deref(), var("XDG_DATA_DIRS").as_deref(), var("HOME").as_deref());
-        if !dirs.iter().any(|d| d.join(DESKTOP_ID).is_file()) {
-            return Err(format!("{DESKTOP_ID} isn't installed (an AppImage needs desktop integration first)"));
+        let id = desktop_id();
+        if !dirs.iter().any(|d| d.join(&id).is_file()) {
+            return Err(format!("{id} isn't installed (an AppImage needs desktop integration first)"));
         }
-        let out = Command::new("xdg-mime").args(xdg_mime_args(DESKTOP_ID)).output().map_err(|e| match e.kind() {
+        let out = Command::new("xdg-mime").args(xdg_mime_args(&id)).output().map_err(|e| match e.kind() {
             std::io::ErrorKind::NotFound => "xdg-mime isn't installed (it comes with xdg-utils)".to_string(),
             _ => format!("couldn't run xdg-mime: {e}"),
         })?;
@@ -137,9 +141,9 @@ mod tests {
 
     #[test]
     fn xdg_mime_sets_every_word_type_in_one_call() {
-        let args = xdg_mime_args(DESKTOP_ID);
+        let args = xdg_mime_args(&desktop_id());
         assert_eq!(args.first().map(String::as_str), Some("default"));
-        assert_eq!(args.get(1).map(String::as_str), Some("ai.storyteller.wordcraft.desktop"));
+        assert_eq!(args.get(1).map(String::as_str), Some("io.github.tomblanchard312.Nisaba.desktop"));
         assert_eq!(&args[2..], WORD_MIME_TYPES);
         for t in [
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -155,13 +159,13 @@ mod tests {
     /// Every type the button claims is one the desktop entry declares, or desktops ignore it.
     #[test]
     fn the_desktop_entry_declares_every_claimed_type() {
-        let entry = include_str!("../../../packaging/linux/ai.storyteller.wordcraft.desktop");
+        let entry = include_str!("../../../packaging/linux/io.github.tomblanchard312.Nisaba.desktop");
         let declared: Vec<&str> =
             entry.lines().find_map(|l| l.strip_prefix("MimeType=")).map(|v| v.split(';').filter(|s| !s.is_empty()).collect()).unwrap_or_default();
         for t in WORD_MIME_TYPES {
             assert!(declared.contains(t), "{t} missing from MimeType=");
         }
-        assert!(entry.lines().any(|l| l == "Exec=wordcraft %F"), "files are passed on the command line");
+        assert!(entry.lines().any(|l| l == format!("Exec={} %F", wordcraft_brand::EXECUTABLE)), "files are passed on the command line");
     }
 
     #[cfg(unix)]

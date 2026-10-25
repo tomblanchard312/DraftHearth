@@ -409,7 +409,8 @@ impl Default for UiState {
             nav_tab: "headings".into(),
             nav_pane: false,
             nav_collapsed: Default::default(),
-            show_discord: true,
+            // Nisaba has no community chat; the upstream title-bar button stays hidden.
+            show_discord: false,
             author: String::new(),
             window: None,
             language: i18n::AUTO.into(),
@@ -1811,7 +1812,8 @@ impl WordApp {
                 ));
             }
             "ui.discord" => {
-                self.canvas.open_url = Some("https://discord.gg/artcraft".into());
+                // Upstream's community link isn't Nisaba's: open the project page instead.
+                self.canvas.open_url = Some(wordcraft_brand::HOMEPAGE.into());
                 json!({})
             }
             "ui.caretAnimation" => {
@@ -1894,7 +1896,10 @@ impl WordApp {
     }
 
     pub fn status(&mut self, s: impl Into<String>) {
-        self.status_msg = Some((s.into(), now_ms()));
+        // Engine and command messages name the upstream product; show this product's name.
+        let s = s.into();
+        let s = wordcraft_brand::branded(&s).into_owned();
+        self.status_msg = Some((s, now_ms()));
     }
 
     /// Media key of the selected picture, if any.
@@ -2521,9 +2526,9 @@ impl WordApp {
             ctx.open_url(egui::OpenUrl::new_tab(url));
         }
         let title = if self.has_document() {
-            format!("{}{} - WordCraft", self.title_stem(), if self.session.dirty { " •" } else { "" })
+            format!("{}{} - {}", self.title_stem(), if self.session.dirty { " •" } else { "" }, wordcraft_brand::NAME)
         } else {
-            "WordCraft".to_string()
+            wordcraft_brand::NAME.to_string()
         };
         if title != self.sent_title {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
@@ -3586,7 +3591,7 @@ mod tests {
         let a = h.state_mut();
         assert!(!a.ui.backstage, "Esc leaves the Start screen");
         assert!(!a.has_document(), "for an empty window, not a blank document");
-        assert_eq!(a.sent_title, "WordCraft", "the window is titled with the app alone");
+        assert_eq!(a.sent_title, wordcraft_brand::NAME, "the window is titled with the app alone");
         // The ribbon's commands are off, but Help, the File tab and the settings work.
         for id in ["format.bold", "text.insert", "file.save", "file.saveAs", "file.print", "edit.paste", "insert.table", "ui.print"] {
             assert!(!widgets::enabled(a, id), "{id} is off with no document");
@@ -6308,7 +6313,7 @@ mod tests {
     #[test]
     fn the_default_app_button_shows_only_with_the_hosts_hook() {
         use egui_kittest::kittest::Queryable;
-        const LABEL: &str = "Make WordCraft the default for Word documents…";
+        const LABEL: &str = "Make Nisaba the default for Word documents…";
         for hook in [false, true] {
             let calls = std::rc::Rc::new(std::cell::Cell::new(0));
             let mut a = app();
@@ -6329,7 +6334,7 @@ mod tests {
                 a,
             );
             h.run_steps(4);
-            assert!(h.query_by_label("Show the community button in the title bar").is_some(), "hook {hook}: the Options page rendered");
+            assert!(h.query_by_label("Start-up").is_some(), "hook {hook}: the Options page rendered");
             assert_eq!(h.query_by_label(LABEL).is_some(), hook, "hook {hook}: the button");
             if hook {
                 h.get_by_label(LABEL).click();

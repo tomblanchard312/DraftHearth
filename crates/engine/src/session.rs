@@ -712,7 +712,7 @@ impl Session {
             goal_x: None,
             page_hint: 0,
             registry,
-            author: "WordCraft User".into(),
+            author: format!("{} User", wordcraft_brand::NAME),
             initials: String::new(),
             painter: None,
             status: String::new(),

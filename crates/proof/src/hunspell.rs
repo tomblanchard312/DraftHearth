@@ -83,7 +83,7 @@ pub fn search_dirs(lo_exts: Option<&[String]>) -> Vec<PathBuf> {
     if cfg!(windows) {
         for var in ["LOCALAPPDATA", "APPDATA"] {
             if let Some(base) = std::env::var_os(var).filter(|v| !v.is_empty()).map(PathBuf::from) {
-                dirs.push(base.join("WordCraft").join("dictionaries"));
+                dirs.push(base.join(wordcraft_brand::SETTINGS_DIR).join("dictionaries"));
                 dirs.push(base.join("hunspell"));
             }
         }

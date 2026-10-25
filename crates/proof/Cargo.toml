@@ -9,6 +9,7 @@ description = "WordCraft proofing per language: spelling, suggestions, grammar c
 workspace = true
 
 [dependencies]
+wordcraft-brand.workspace = true
 log = { workspace = true }
 miniz_oxide = "0.8"
 unicode-normalization = "0.1"

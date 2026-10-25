@@ -9,6 +9,7 @@ description = "WordCraft import/export: plain text, Markdown, HTML, RTF, OpenDoc
 workspace = true
 
 [dependencies]
+wordcraft-brand.workspace = true
 wordcraft-doc = { workspace = true }
 wordcraft-geom = { workspace = true, features = ["image"] }
 image = { workspace = true }

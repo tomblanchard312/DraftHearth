@@ -2,26 +2,28 @@
 <!-- AppStream metadata (software centres, Flathub). Template: package.sh and the Flatpak
      manifest substitute @VERSION@ and @DATE@ from Cargo.toml and the build date. -->
 <component type="desktop-application">
-  <id>ai.storyteller.wordcraft</id>
+  <id>io.github.tomblanchard312.Nisaba</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT OR Apache-2.0</project_license>
-  <name>WordCraft</name>
+  <name>Nisaba</name>
   <summary>Write and design documents; open and save Word files</summary>
-  <developer id="ai.storyteller">
-    <name>Learning Machines LLC</name>
+  <developer id="io.github.tomblanchard312">
+    <name>Tom Blanchard</name>
   </developer>
   <description>
     <p>
-      WordCraft is a fast, open-source word processor with a familiar ribbon: styles, tables, track changes, references, mail merge, and .docx, PDF, ODT, RTF, HTML and Markdown files. It can be driven by AI agents over MCP.
+      Nisaba is a fast, open-source word processor with a familiar ribbon: styles, tables, track changes, references, mail merge, and .docx, PDF, ODT, RTF, HTML and Markdown files. It can be driven by AI agents over MCP.
+    </p>
+    <p>
+      Nisaba is based on WordCraft, the open-source word processor by the ArtCraft team and community.
     </p>
   </description>
-  <launchable type="desktop-id">ai.storyteller.wordcraft.desktop</launchable>
-  <icon type="stock">ai.storyteller.wordcraft</icon>
+  <launchable type="desktop-id">io.github.tomblanchard312.Nisaba.desktop</launchable>
+  <icon type="stock">io.github.tomblanchard312.Nisaba</icon>
   <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI validates): no vcs-browser. -->
-  <url type="homepage">https://getartcraft.com/apps/wordcraft</url>
-  <url type="bugtracker">https://github.com/storytold/wordcraft/issues</url>
-  <url type="help">https://github.com/storytold/wordcraft</url>
-  <url type="contact">https://discord.gg/artcraft</url>
+  <url type="homepage">https://github.com/tomblanchard312/wordcraft-nisaba</url>
+  <url type="bugtracker">https://github.com/tomblanchard312/wordcraft-nisaba/issues</url>
+  <url type="help">https://github.com/tomblanchard312/wordcraft-nisaba</url>
   <categories>
     <category>Office</category>
     <category>WordProcessor</category>
@@ -32,15 +34,10 @@
     <keyword>document</keyword>
     <keyword>writer</keyword>
   </keywords>
-  <screenshots>
-    <screenshot type="default">
-      <caption>The Open Studio Handbook sample with the Navigation pane</caption>
-      <image>https://raw.githubusercontent.com/storytold/wordcraft/main/docs/images/hero.png</image>
-    </screenshot>
-  </screenshots>
+  <!-- Screenshots return once there is a Nisaba screenshot in this repository. -->
   <branding>
-    <color type="primary" scheme_preference="light">#b9c7f5</color>
-    <color type="primary" scheme_preference="dark">#2b47b5</color>
+    <color type="primary" scheme_preference="light">#cfc6f2</color>
+    <color type="primary" scheme_preference="dark">#3b2f7a</color>
   </branding>
   <requires>
     <display_length compare="ge">760</display_length>
@@ -50,9 +47,9 @@
     <control>pointing</control>
     <control>tablet</control>
   </supports>
-  <!-- Document types WordCraft opens (#295), as in the desktop entry's MimeType=. -->
+  <!-- Document types Nisaba opens (#295), as in the desktop entry's MimeType=. -->
   <provides>
-    <binary>wordcraft</binary>
+    <binary>nisaba</binary>
     <mediatype>application/vnd.openxmlformats-officedocument.wordprocessingml.document</mediatype>
     <mediatype>application/vnd.ms-word.document.macroEnabled.12</mediatype>
     <mediatype>application/vnd.openxmlformats-officedocument.wordprocessingml.template</mediatype>

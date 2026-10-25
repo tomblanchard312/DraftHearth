@@ -6545,6 +6545,7 @@ dependencies = [
  "winit",
  "winresource",
  "wl-clipboard-rs",
+ "wordcraft-brand",
  "wordcraft-control-key",
  "wordcraft-doc",
  "wordcraft-engine",
@@ -6553,6 +6554,10 @@ dependencies = [
  "wordcraft-ui-egui",
  "zbus",
 ]
+
+[[package]]
+name = "wordcraft-brand"
+version = "0.10.0"
 
 [[package]]
 name = "wordcraft-cli"
@@ -6570,6 +6575,9 @@ dependencies = [
 [[package]]
 name = "wordcraft-control-key"
 version = "0.10.0"
+dependencies = [
+ "wordcraft-brand",
+]
 
 [[package]]
 name = "wordcraft-doc"
@@ -6619,6 +6627,7 @@ dependencies = [
  "sha2 0.11.0",
  "thiserror 2.0.21",
  "unicode-bidi",
+ "wordcraft-brand",
  "wordcraft-doc",
  "wordcraft-geom",
  "zeroize",
@@ -6641,6 +6650,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "wordcraft-brand",
  "wordcraft-doc",
  "wordcraft-docbin",
  "wordcraft-docx",
@@ -6681,6 +6691,7 @@ dependencies = [
  "log",
  "proptest",
  "quick-xml",
+ "wordcraft-brand",
  "wordcraft-doc",
  "wordcraft-geom",
  "zip",
@@ -6720,6 +6731,7 @@ version = "0.10.0"
 dependencies = [
  "log",
  "serde_json",
+ "wordcraft-brand",
  "wordcraft-control-key",
  "wordcraft-doc",
  "wordcraft-engine",
@@ -6748,6 +6760,7 @@ dependencies = [
  "kurbo",
  "log",
  "thiserror 2.0.21",
+ "wordcraft-brand",
  "wordcraft-doc",
  "wordcraft-fonts",
  "wordcraft-geom",
@@ -6763,6 +6776,7 @@ dependencies = [
  "miniz_oxide 0.8.9",
  "proptest",
  "unicode-normalization",
+ "wordcraft-brand",
 ]
 
 [[package]]
@@ -6777,6 +6791,13 @@ dependencies = [
  "wordcraft-geom",
  "wordcraft-layout",
  "wordcraft-metafile",
+]
+
+[[package]]
+name = "wordcraft-sharedai"
+version = "0.10.0"
+dependencies = [
+ "serde_json",
 ]
 
 [[package]]
@@ -6797,12 +6818,14 @@ dependencies = [
  "sys-locale",
  "toml",
  "unicode-bidi",
+ "wordcraft-brand",
  "wordcraft-doc",
  "wordcraft-engine",
  "wordcraft-fonts",
  "wordcraft-geom",
  "wordcraft-layout",
  "wordcraft-render",
+ "wordcraft-sharedai",
  "wordcraft-zotero",
  "zbus",
  "zip",

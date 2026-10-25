@@ -7,3 +7,6 @@ description = "WordCraft control-port key file: where it lives and how to read i
 
 [lints]
 workspace = true
+
+[dependencies]
+wordcraft-brand.workspace = true

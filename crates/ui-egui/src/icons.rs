@@ -890,6 +890,13 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, accent: Color32) {
             pen.line(&[(10.0, 7.0), (10.0, 12.0), (7.0, 17.5)]);
             pen.line(&[(10.0, 12.0), (13.0, 17.5)]);
         }
+        "assistant" => {
+            // Nisaba's Assistant: a speech bubble with a four-pointed spark.
+            pen.closed(&[(2.5, 4.5), (14.5, 4.5), (14.5, 14.0), (8.0, 14.0), (4.5, 17.0), (4.5, 14.0), (2.5, 14.0)], c);
+            pen.closed(&[(15.0, 1.5), (16.0, 4.0), (18.5, 5.0), (16.0, 6.0), (15.0, 8.5), (14.0, 6.0), (11.5, 5.0), (14.0, 4.0)], a);
+            pen.line_c(&[(5.5, 8.0), (11.0, 8.0)], c);
+            pen.line_c(&[(5.5, 11.0), (9.5, 11.0)], c);
+        }
         "altText" => {
             // A small picture with lines of text beside and below it.
             pen.rect(2.5, 3.5, 11.5, 11.0, c);

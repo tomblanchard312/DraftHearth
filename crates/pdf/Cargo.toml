@@ -9,6 +9,7 @@ description = "WordCraft PDF export (craft-pdf / Krilla): embedded font subsets 
 workspace = true
 
 [dependencies]
+wordcraft-brand.workspace = true
 wordcraft-doc = { workspace = true }
 wordcraft-geom = { workspace = true, features = ["image"] }
 wordcraft-fonts = { workspace = true }

@@ -148,6 +148,9 @@ pub struct ViewState {
     /// The Accessibility pane (Review › Check Accessibility): the checker's findings.
     #[serde(default)]
     pub accessibility_pane: bool,
+    /// Nisaba's Assistant pane (Review › Assistant): suggestions from a local SharedAI model.
+    #[serde(default)]
+    pub assistant_pane: bool,
     /// The Alt Text pane (Picture/Shape Format › Alt Text): the selected object's or table's alt text.
     #[serde(default)]
     pub alt_text_pane: bool,
@@ -257,6 +260,7 @@ impl Default for ViewState {
             clipboard_pane: false,
             smart_art_pane: false,
             accessibility_pane: false,
+            assistant_pane: false,
             alt_text_pane: false,
             format_shape_pane: false,
             multi_page: false,
@@ -591,6 +595,10 @@ pub struct Prefs {
     /// in Word). A damaged saved value reads as the defaults.
     #[serde(deserialize_with = "crate::cmd::tools::lenient_autocorrect")]
     pub autocorrect: crate::cmd::tools::AutoCorrectPrefs,
+    /// Nisaba Assistant: the SharedAI socket; empty uses `SHAREDAI_SOCKET` or the desktop default.
+    pub assistant_socket: String,
+    /// Nisaba Assistant: the SharedAI model id; empty uses the first registered model.
+    pub assistant_model: String,
 }
 
 impl Default for Prefs {
@@ -615,6 +623,8 @@ impl Default for Prefs {
             detect_language: true,
             default_language: None,
             autocorrect: Default::default(),
+            assistant_socket: String::new(),
+            assistant_model: String::new(),
         }
     }
 }
@@ -712,7 +722,7 @@ impl Session {
             goal_x: None,
             page_hint: 0,
             registry,
-            author: "WordCraft User".into(),
+            author: format!("{} User", wordcraft_brand::NAME),
             initials: String::new(),
             painter: None,
             status: String::new(),

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Regenerate every app icon from assets/app-icon/wordcraft.svg.
+# Regenerate every app icon from assets/app-icon/nisaba.svg (original Nisaba artwork). Output files
+# keep upstream's internal names (wordcraft.ico, wordcraft.icns, wordcraft-*.png) so build scripts
+# are unchanged; the themed icons use the app id.
 #
 # Needs: resvg (brew install resvg / cargo install resvg). On macOS, iconutil also writes the
 # .icns. The outputs are committed, so builds and packaging never need these tools.
@@ -8,8 +10,8 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIR="$ROOT/assets/app-icon"
-SVG="$DIR/wordcraft.svg"
-ID="ai.storyteller.wordcraft"
+SVG="$DIR/nisaba.svg"
+ID="io.github.tomblanchard312.Nisaba"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -57,6 +59,12 @@ if command -v iconutil >/dev/null; then
   done
   iconutil -c icns -o "$DIR/wordcraft.icns" "$SET"
 else
-  echo "warning: iconutil not found (macOS only); wordcraft.icns not regenerated" >&2
+  # Elsewhere, write a PNG-backed .icns directly.
+  ICNS_ARGS=()
+  for s in 16 32 64 128 256 512 1024; do
+    render "$MAC" "$s" "$TMP/icns-$s.png"
+    ICNS_ARGS+=("$s=$TMP/icns-$s.png")
+  done
+  python3 "$ROOT/packaging/icns.py" "$DIR/wordcraft.icns" "${ICNS_ARGS[@]}"
 fi
 echo "icons written to $DIR"

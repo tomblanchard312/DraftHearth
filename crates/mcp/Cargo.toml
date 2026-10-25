@@ -9,6 +9,7 @@ description = "WordCraft MCP server: every command as a tool, headless or bridge
 workspace = true
 
 [dependencies]
+wordcraft-brand.workspace = true
 wordcraft-doc = { workspace = true }
 wordcraft-engine = { workspace = true }
 wordcraft-render = { workspace = true }

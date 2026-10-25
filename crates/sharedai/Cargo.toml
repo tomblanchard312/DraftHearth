@@ -1,0 +1,12 @@
+[package]
+name = "wordcraft-sharedai"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "A small blocking client for the SharedAI local inference daemon (protocol v2 chat streaming), used by Nisaba's Assistant pane"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde_json.workspace = true

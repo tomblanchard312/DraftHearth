@@ -219,7 +219,6 @@ fn general(app: &mut WordApp, ui: &mut Ui) {
     {
         let _ = app.run("view.darkMode", json!({"value": dark_page}));
     }
-    ui.checkbox(&mut app.ui.show_discord, tl!("Show the community button in the title bar"));
     default_app_button(app, ui);
     ui.add_space(8.0);
     section(ui, "Start-up");
@@ -879,7 +878,8 @@ mod tests {
     #[test]
     fn user_name_field_disables_when_protection_starts() {
         let mut h = nav_harness("en", 100);
-        let user_name = || egui_kittest::kittest::By::new().role(egui::accesskit::Role::TextInput).value("WordCraft User");
+        let author = format!("{} User", wordcraft_brand::NAME);
+        let user_name = || egui_kittest::kittest::By::new().role(egui::accesskit::Role::TextInput).value(author.as_str());
         assert!(!h.get(user_name()).accesskit_node().is_disabled());
         h.state_mut().run("review.restrict", json!({"mode": "readOnly"})).unwrap();
         h.run_steps(4);
@@ -1174,10 +1174,10 @@ mod tests {
         );
         h.run_steps(4);
         assert!(h.query_by_label("Start-up").is_some(), "the section is there");
-        h.get_by_label("Show the Start screen when WordCraft starts").click();
+        h.get_by_label(&format!("Show the Start screen when {} starts", wordcraft_brand::NAME)).click();
         h.run_steps(4);
         assert!(!h.state().ui.start_screen, "the checkbox turns it off");
-        h.get_by_label("Show the Start screen when WordCraft starts").click();
+        h.get_by_label(&format!("Show the Start screen when {} starts", wordcraft_brand::NAME)).click();
         h.run_steps(4);
         assert!(h.state().ui.start_screen, "and on again");
     }

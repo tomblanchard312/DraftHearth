@@ -341,7 +341,31 @@ pub fn trc<'a>(lang: Lang, context: &str, s: &'a str) -> &'a str {
     if pseudo::on() {
         return I18N.tc(craft_i18n::Lang::PSEUDO, context, s);
     }
-    lang.i18n().tc(lang.lang, context, s)
+    branded(lang.i18n().tc(lang.lang, context, s))
+}
+
+/// Interface text with the upstream product name replaced (`wordcraft_brand::branded`). The
+/// result is interned, so callers keep getting a borrowed `&str`: the set of interface strings
+/// is fixed, so the cache stays small.
+fn branded(s: &str) -> &str {
+    use std::collections::HashMap;
+    use std::sync::{Mutex, OnceLock};
+    if !s.contains(wordcraft_brand::UPSTREAM_NAME) {
+        return s;
+    }
+    static CACHE: OnceLock<Mutex<HashMap<String, &'static str>>> = OnceLock::new();
+    let Ok(mut cache) = CACHE.get_or_init(Default::default).lock() else {
+        return s;
+    };
+    if let Some(hit) = cache.get(s) {
+        return hit;
+    }
+    if cache.len() >= 4096 {
+        return s; // never grow without bound if something dynamic slips through
+    }
+    let owned: &'static str = Box::leak(wordcraft_brand::branded(s).into_owned().into_boxed_str());
+    cache.insert(s.to_string(), owned);
+    owned
 }
 
 /// `s`'s translation for `context` in the current language, with no fallback to the plain row
@@ -353,7 +377,7 @@ pub fn get<'a>(context: &str, s: &'a str) -> Option<&'a str> {
         return I18N.get(craft_i18n::Lang::PSEUDO, context, s);
     }
     let lang = current();
-    lang.i18n().get(lang.lang, context, s)
+    lang.i18n().get(lang.lang, context, s).map(branded)
 }
 
 /// Lowercase translated interface labels and UI search queries in the current language.
@@ -381,7 +405,7 @@ pub fn tr(lang: Lang, s: &str) -> &str {
     if pseudo::on() {
         return I18N.t(craft_i18n::Lang::PSEUDO, s);
     }
-    lang.i18n().t(lang.lang, s)
+    branded(lang.i18n().t(lang.lang, s))
 }
 
 /// A style's name as the interface shows it: built-in styles (`Normal`, `Heading 2`, `TOC 3`) in

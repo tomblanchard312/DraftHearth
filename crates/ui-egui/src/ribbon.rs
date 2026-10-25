@@ -2160,6 +2160,10 @@ fn review(app: &mut WordApp, ui: &mut Ui) {
     group(ui, "Accessibility", None, app, |ui, app| {
         big(ui, app, "accessibility", "Check\nAccessibility", "file.accessibility", json!({}), false);
     });
+    group(ui, "Assistant", None, app, |ui, app| {
+        let shown = app.session.view.assistant_pane;
+        big(ui, app, "assistant", "Assistant", "view.assistantPane", json!({"value": !shown}), false);
+    });
     group(ui, "Language", None, app, |ui, app| {
         big(ui, app, "translate", "Translate", "review.translate", json!({}), false);
         menu_button(ui, app, "language", Some("Language"), "Language", true, "", language_menu);

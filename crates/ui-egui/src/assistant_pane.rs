@@ -58,9 +58,11 @@ impl Action {
     }
 }
 
+/// `/no_think` asks reasoning models (Qwen3 and others that honour it) to answer without a
+/// thinking pass; any thinking that still arrives is hidden by [`visible`].
 const SYSTEM: &str = "You are the writing assistant in a word processor. Reply with only the requested text: \
-no preamble, no explanation, no quotation marks around it. Keep the author's meaning and language, \
-and keep paragraph breaks as blank lines.";
+no preamble, no explanation, no reasoning, no quotation marks around it. Keep the author's meaning and \
+language, and keep paragraph breaks as blank lines. /no_think";
 
 /// The largest selection sent (characters); the daemon's context is the real limit.
 pub const MAX_CONTEXT_CHARS: usize = 24_000;
@@ -77,9 +79,56 @@ pub fn messages(action: Option<Action>, prompt: &str, text: &str) -> Vec<wordcra
     vec![Message::new("system", SYSTEM), Message::new("user", user)]
 }
 
-/// A reply ready to apply: surrounding blank space and one pair of wrapping quotes removed.
+/// What of a (possibly still streaming) reply the writer sees, and whether the model is still
+/// thinking. Reasoning models wrap their thinking in `<think>…</think>`; those sections are
+/// never shown or applied. A reply that closes a thinking section it never opened (the chat
+/// template opened it) drops everything before the close. A tag split across chunks is held back.
+pub fn visible(raw: &str) -> (String, bool) {
+    const OPEN: &str = "<think>";
+    const CLOSE: &str = "</think>";
+    let mut rest = raw;
+    // Thinking opened by the template: only a closing tag, with no opening tag before it.
+    if let Some(c) = rest.find(CLOSE)
+        && rest.get(..c).is_some_and(|before| !before.contains(OPEN))
+    {
+        rest = rest.get(c + CLOSE.len()..).unwrap_or("");
+    }
+    let mut out = String::new();
+    let mut thinking = false;
+    loop {
+        match rest.find(OPEN) {
+            None => {
+                out.push_str(rest);
+                break;
+            }
+            Some(o) => {
+                out.push_str(rest.get(..o).unwrap_or(""));
+                let after = rest.get(o + OPEN.len()..).unwrap_or("");
+                match after.find(CLOSE) {
+                    Some(c) => rest = after.get(c + CLOSE.len()..).unwrap_or(""),
+                    None => {
+                        thinking = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    // A tag still arriving ("<thi") isn't shown.
+    if !thinking
+        && let Some(lt) = out.rfind('<')
+        && out.get(lt..).is_some_and(|tail| tail.len() > 1 && (OPEN.starts_with(tail) || CLOSE.starts_with(tail)))
+    {
+        out.truncate(lt);
+    }
+    (out.trim_start().to_string(), thinking)
+}
+
+/// A reply ready to apply: thinking removed ([`visible`]), surrounding blank space and one pair
+/// of wrapping quotes removed.
 pub fn cleaned(reply: &str) -> String {
-    let t = reply.trim();
+    let (shown, _) = visible(reply);
+    let t = shown.trim();
     for (open, close) in [('"', '"'), ('\u{201C}', '\u{201D}')] {
         if let Some(inner) = t.strip_prefix(open).and_then(|r| r.strip_suffix(close))
             && !inner.contains(open)
@@ -395,7 +444,7 @@ fn ask(app: &mut WordApp, action: Option<Action>) {
                 wordcraft_brand::EXECUTABLE,
                 &model,
                 &msgs,
-                &wordcraft_sharedai::Params { max_tokens: Some(1024), temperature: Some(0.4), seed: None },
+                &wordcraft_sharedai::Params { max_tokens: Some(wordcraft_sharedai::MAX_TOKENS), temperature: Some(0.4), seed: None },
                 wordcraft_sharedai::Timeouts::default(),
                 &cancel,
                 |t| {
@@ -551,19 +600,27 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
         ask(app, action);
     }
 
-    if work == Some(Work::Writing) && app.assistant.reply.is_empty() {
+    let (shown, thinking) = visible(&app.assistant.reply);
+    let writing = work == Some(Work::Writing);
+    if writing && thinking {
+        ui.add_space(4.0);
+        working_label(ui, tl!("Thinking…"));
+    } else if writing && shown.trim().is_empty() {
         ui.add_space(4.0);
         working_label(ui, &crate::i18n::fmt(tl!("{name} is writing…"), &[("name", NAME)]));
     } else if !app.assistant.status.is_empty() {
         ui.add_space(4.0);
         ui.label(egui::RichText::new(app.assistant.status.as_str()).small());
+    } else if !writing && !app.assistant.reply.is_empty() && shown.trim().is_empty() {
+        ui.add_space(4.0);
+        ui.label(egui::RichText::new(crate::i18n::fmt(tl!("{name} didn't write an answer. Try again."), &[("name", NAME)])).small());
     }
 
-    if !app.assistant.reply.is_empty() {
+    if !shown.trim().is_empty() {
         ui.add_space(6.0);
         ui.separator();
-        egui::ScrollArea::vertical().max_height(ui.available_height() - 64.0).stick_to_bottom(true).show(ui, |ui| {
-            ui.label(egui::RichText::new(app.assistant.reply.as_str()).font(regular(13.0)));
+        egui::ScrollArea::vertical().max_height(ui.available_height() - 40.0).stick_to_bottom(true).show(ui, |ui| {
+            ui.label(egui::RichText::new(shown.as_str()).font(regular(13.0)));
         });
         if !app.assistant.busy() {
             let (had_text, mode) = app.assistant.origin.as_ref().map(|o| (o.had_text, o.mode)).unwrap_or((false, "after"));
@@ -580,11 +637,6 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
                 }
             });
         }
-    }
-
-    ui.add_space(10.0);
-    if ui.add_enabled(!busy, egui::Button::new(egui::RichText::new(tl!("Add Another Model…")).small()).frame(false)).clicked() {
-        choose_model_file(app);
     }
 }
 
@@ -636,6 +688,25 @@ mod tests {
             assert!(!m.is_empty());
         }
         assert!(friendly(&E::NotInstalled).contains(NAME));
+    }
+
+    #[test]
+    fn thinking_is_never_shown_or_applied() {
+        // A whole reply from a reasoning model: only the answer remains.
+        let raw = "<think>\nThinking Process:\n1. Analyze the request...\n</think>\n\nEvery Thursday evening the old print shop fills.";
+        assert_eq!(visible(raw), ("Every Thursday evening the old print shop fills.".to_string(), false));
+        assert_eq!(cleaned(raw), "Every Thursday evening the old print shop fills.");
+        // While it thinks: nothing shown, and the pane knows it is thinking.
+        assert_eq!(visible("<think>\nThinking Process:\n1. Analyze"), (String::new(), true));
+        // The template opened the thinking: drop everything up to the close.
+        assert_eq!(visible("I should fix the typo.\n</think>\nFixed text."), ("Fixed text.".to_string(), false));
+        // A tag split across chunks isn't flashed on screen.
+        assert_eq!(visible("<thi"), (String::new(), false));
+        assert_eq!(visible("Answer.</thi"), ("Answer.".to_string(), false));
+        // Ordinary text, including a lone "<", is untouched.
+        assert_eq!(visible("a < b and c"), ("a < b and c".to_string(), false));
+        // An empty thinking block (models that honour /no_think) leaves the answer.
+        assert_eq!(cleaned("<think>\n\n</think>\n\n\"Done.\""), "Done.");
     }
 
     #[test]

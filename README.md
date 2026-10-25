@@ -7,9 +7,9 @@ ribbon, styles, tables, track changes, references and mail merge; it reads and w
 Nisaba is a fork of [WordCraft](https://github.com/storytold/wordcraft) by the ArtCraft team and
 community. It follows WordCraft closely and adds what a desktop built around local AI needs:
 
-- **A built-in assistant** through [SharedAI](https://github.com/tomblanchard312/SharedAI), the
-  per-user local model service: rewrite and draft without anything leaving the machine. Suggestions
-  arrive as tracked changes you accept or reject (Review › Assistant; see [docs/assistant.md](docs/assistant.md)).
+- **Scribe, a built-in writing assistant** on [SharedAI](https://github.com/tomblanchard312/SharedAI),
+  the per-user local model service: rewrite and draft without anything leaving the machine. Suggestions
+  arrive as tracked changes you accept or reject (Review › Scribe; see [docs/assistant.md](docs/assistant.md)).
 - **Word VBA macros** (optional, .NET): macros from .docm/.doc files or exported modules run against Nisaba's command protocol, behind an allow-list ([vba/](vba/README.md)).
 - **A FreeBSD and KDE Plasma home**: packaging and defaults for a FreeBSD desktop distribution,
   alongside the Linux, macOS, Windows and web builds WordCraft already has.

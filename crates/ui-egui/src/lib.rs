@@ -1017,6 +1017,16 @@ impl WordApp {
         if let Some(r) = table_pen::toggle(self, id, &params) {
             return r;
         }
+        if id == "ui.assistant.addModel" {
+            let r = match params.get("path").and_then(Value::as_str) {
+                Some(path) => assistant_pane::add_model(self, path),
+                None => Err("path: the model file to add".to_string()),
+            };
+            if let Err(e) = &r {
+                self.status(e.clone());
+            }
+            return r;
+        }
         let ctx = self.ctx.clone();
         if let Some(r) = zotero::command(self, id, &params, ctx.as_ref()) {
             if let Err(e) = &r {

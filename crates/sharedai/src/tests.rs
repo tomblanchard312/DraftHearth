@@ -147,3 +147,29 @@ fn a_missing_daemon_says_so() {
     let e = list_models(std::path::Path::new("/nonexistent/nisaba/ipc.sock"), "nisaba").unwrap_err();
     assert!(e.to_string().contains("isn't running"), "{e}");
 }
+
+#[test]
+fn the_daemon_is_looked_for_in_the_private_helper_folder_first() {
+    let c = daemon_candidates(Some(std::path::Path::new("/usr/bin/nisaba")), Some(std::ffi::OsStr::new("/opt/x:/usr/local/bin")));
+    let c: Vec<String> = c.iter().map(|p| p.display().to_string()).collect();
+    assert_eq!(c, ["/usr/lib/nisaba/sharedai-daemon", "/usr/bin/sharedai-daemon", "/opt/x/sharedai-daemon", "/usr/local/bin/sharedai-daemon"]);
+}
+
+#[test]
+fn model_ids_follow_the_registry_rules() {
+    use std::path::Path;
+    assert_eq!(model_id(Path::new("/m/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf")), "Qwen2.5-1.5B-Instruct-Q4_K_M");
+    assert_eq!(model_id(Path::new("/m/my model (v2).gguf")), "my-model--v2");
+    assert_eq!(model_id(Path::new("/m/..gguf")), "model");
+    assert!(model_id(Path::new(&format!("/m/{}.gguf", "a".repeat(300)))).len() <= 128);
+}
+
+#[test]
+fn files_hash_to_their_sha256() {
+    let p = std::env::temp_dir().join(format!("nisaba-hash-{}", std::process::id()));
+    std::fs::write(&p, b"abc").unwrap();
+    let (size, hex) = hash_file(&p).unwrap();
+    let _ = std::fs::remove_file(&p);
+    assert_eq!(size, 3);
+    assert_eq!(hex, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+}

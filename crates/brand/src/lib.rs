@@ -21,6 +21,18 @@ pub const SETTINGS_DIR: &str = "Nisaba";
 /// Where people find the project.
 pub const HOMEPAGE: &str = "https://github.com/tomblanchard312/wordcraft-nisaba";
 /// The project Nisaba is based on, stated wherever its origin is.
+/// The writing assistant's name, as a macro so `concat!` can build command labels from it.
+/// Users only ever see this name: the local model service behind it (SharedAI) stays out of the
+/// interface.
+#[macro_export]
+macro_rules! assistant_name {
+    () => {
+        "Scribe"
+    };
+}
+/// The writing assistant's name (see [`assistant_name!`]).
+pub const ASSISTANT_NAME: &str = assistant_name!();
+
 pub const UPSTREAM_NAME: &str = "WordCraft";
 pub const UPSTREAM_HOMEPAGE: &str = "https://github.com/storytold/wordcraft";
 /// Licence and copyright line. The upstream notice must stay (MIT/Apache-2.0).

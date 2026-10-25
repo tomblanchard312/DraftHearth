@@ -6798,6 +6798,7 @@ name = "wordcraft-sharedai"
 version = "0.10.0"
 dependencies = [
  "serde_json",
+ "sha2 0.11.0",
 ]
 
 [[package]]

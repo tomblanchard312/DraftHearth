@@ -2160,9 +2160,9 @@ fn review(app: &mut WordApp, ui: &mut Ui) {
     group(ui, "Accessibility", None, app, |ui, app| {
         big(ui, app, "accessibility", "Check\nAccessibility", "file.accessibility", json!({}), false);
     });
-    group(ui, "Assistant", None, app, |ui, app| {
+    group(ui, wordcraft_brand::ASSISTANT_NAME, None, app, |ui, app| {
         let shown = app.session.view.assistant_pane;
-        big(ui, app, "assistant", "Assistant", "view.assistantPane", json!({"value": !shown}), false);
+        big(ui, app, "assistant", wordcraft_brand::ASSISTANT_NAME, "view.assistantPane", json!({"value": !shown}), false);
     });
     group(ui, "Language", None, app, |ui, app| {
         big(ui, app, "translate", "Translate", "review.translate", json!({}), false);

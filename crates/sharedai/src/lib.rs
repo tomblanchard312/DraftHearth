@@ -93,11 +93,17 @@ pub enum Error {
     Cancelled,
     /// A request outside the daemon's limits, refused before anything was sent.
     Invalid(String),
+    /// No `sharedai-daemon` next to the app, in `SHAREDAI_DAEMON` or on `PATH`.
+    NotInstalled,
+    /// The daemon was found but didn't start listening.
+    StartFailed(String),
+    /// The model registry refused a registration (`kind`: `invalid_metadata`, `capacity`, …).
+    Registry(String),
 }
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NoEndpoint => write!(f, "SharedAI isn't configured: set SHAREDAI_SOCKET or the socket path under Connection"),
+            Self::NoEndpoint => write!(f, "no model service socket (SHAREDAI_SOCKET or XDG_RUNTIME_DIR)"),
             Self::Unsupported => write!(f, "SharedAI isn't available on this platform"),
             Self::Io(e) if e.kind() == std::io::ErrorKind::NotFound || e.kind() == std::io::ErrorKind::ConnectionRefused => {
                 write!(f, "SharedAI isn't running ({e})")
@@ -110,6 +116,9 @@ impl fmt::Display for Error {
             Self::Timeout => write!(f, "SharedAI stopped responding"),
             Self::Cancelled => write!(f, "Stopped"),
             Self::Invalid(m) => write!(f, "{m}"),
+            Self::NotInstalled => write!(f, "sharedai-daemon isn't installed"),
+            Self::StartFailed(m) => write!(f, "sharedai-daemon didn't start: {m}"),
+            Self::Registry(k) => write!(f, "the model registry refused the model ({k})"),
         }
     }
 }
@@ -280,6 +289,65 @@ pub fn drive<S: std::io::Read>(
 /// How often a waiting stream checks for cancellation.
 pub const POLL: Duration = Duration::from_millis(200);
 
+/// A registry id for a model file: its name without the extension, reduced to the characters
+/// the registry allows (letters, digits, `.`, `_`, `-`; at most 128).
+pub fn model_id(path: &std::path::Path) -> String {
+    let stem = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+    let id: String = stem.chars().map(|c| if c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-') { c } else { '-' }).take(128).collect();
+    let id = id.trim_matches(|c| c == '-' || c == '.').to_string();
+    if id.is_empty() { "model".into() } else { id }
+}
+
+/// Size and lowercase hex SHA-256 of a file, read in 1 MiB pieces.
+pub fn hash_file(path: &std::path::Path) -> Result<(u64, String), Error> {
+    use sha2::{Digest, Sha256};
+    use std::io::Read;
+    let mut f = std::fs::File::open(path)?;
+    let mut hasher = Sha256::new();
+    let mut buf = vec![0u8; 1 << 20];
+    let mut size = 0u64;
+    loop {
+        let n = f.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(buf.get(..n).unwrap_or(&[]));
+        size = size.saturating_add(n as u64);
+    }
+    let hex = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
+    Ok((size, hex))
+}
+
+/// Where to find `sharedai-daemon`: `SHAREDAI_DAEMON`; then the program's private helper folder,
+/// `<prefix>/lib/<program>/` (how Nisaba's packages ship it: `/usr/bin/nisaba` looks in
+/// `/usr/lib/nisaba/`); then next to the program (a cargo build); then each `PATH` directory.
+pub fn find_daemon() -> Option<std::path::PathBuf> {
+    if let Some(p) = std::env::var_os("SHAREDAI_DAEMON").filter(|p| !p.is_empty()) {
+        return Some(p.into()).filter(|p: &std::path::PathBuf| p.is_file());
+    }
+    let exe = std::env::current_exe().ok();
+    let candidates = daemon_candidates(exe.as_deref(), std::env::var_os("PATH").as_deref());
+    candidates.into_iter().find(|p| p.is_file())
+}
+
+/// The places [`find_daemon`] looks, in order, for a program at `exe` and a `PATH` value.
+pub fn daemon_candidates(exe: Option<&std::path::Path>, path: Option<&std::ffi::OsStr>) -> Vec<std::path::PathBuf> {
+    let name = "sharedai-daemon";
+    let mut out = Vec::new();
+    if let Some(exe) = exe
+        && let Some(dir) = exe.parent()
+    {
+        if let (Some(prefix), Some(stem)) = (dir.parent(), exe.file_stem()) {
+            out.push(prefix.join("lib").join(stem).join(name));
+        }
+        out.push(dir.join(name));
+    }
+    if let Some(path) = path {
+        out.extend(std::env::split_paths(path).map(|d| d.join(name)));
+    }
+    out
+}
+
 #[cfg(unix)]
 mod net {
     use super::*;
@@ -302,6 +370,67 @@ mod net {
             // Daemons from before negotiation answer "Invalid request"; they have no inference.
             (Some("error"), _) if version >= VERSION_INFERENCE => Err(Error::Incompatible),
             _ => Err(Error::Protocol(format!("negotiate reply {v}"))),
+        }
+    }
+
+    /// Start the daemon unless something already listens on `endpoint`. `socket_env` is passed as
+    /// `SHAREDAI_SOCKET` when set (otherwise the daemon uses its default, the same path).
+    pub fn ensure_running(endpoint: &Path, socket_env: Option<&Path>) -> Result<(), Error> {
+        use std::os::unix::process::CommandExt;
+        if UnixStream::connect(endpoint).is_ok() {
+            return Ok(());
+        }
+        let daemon = find_daemon().ok_or(Error::NotInstalled)?;
+        if let Some(dir) = socket_env.and_then(Path::parent) {
+            use std::os::unix::fs::DirBuilderExt;
+            match std::fs::DirBuilder::new().mode(0o700).recursive(true).create(dir) {
+                Err(e) if e.kind() != std::io::ErrorKind::AlreadyExists => return Err(Error::Io(e)),
+                _ => {}
+            }
+        }
+        let mut cmd = std::process::Command::new(&daemon);
+        cmd.stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+        // Its own process group: it outlives this app and isn't stopped by the terminal's Ctrl+C.
+        cmd.process_group(0);
+        if let Some(sock) = socket_env {
+            cmd.env("SHAREDAI_SOCKET", sock);
+        }
+        let mut child = cmd.spawn().map_err(|e| Error::StartFailed(e.to_string()))?;
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        loop {
+            if UnixStream::connect(endpoint).is_ok() {
+                return Ok(());
+            }
+            if let Ok(Some(status)) = child.try_wait() {
+                return Err(Error::StartFailed(format!("exited with {status}")));
+            }
+            if std::time::Instant::now() >= deadline {
+                return Err(Error::StartFailed("not listening after 10 s".into()));
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    }
+
+    /// Register a model file: its checksum is computed here, the daemon checks it before loading.
+    pub fn register_file(endpoint: &Path, app: &str, id: &str, path: &Path) -> Result<(), Error> {
+        let (size, sha256) = hash_file(path)?;
+        let size = i64::try_from(size).map_err(|_| Error::Invalid("the model file is too large".into()))?;
+        let model = json!({
+            "id": id,
+            "path": path.to_string_lossy(),
+            "sha256": sha256,
+            "size_bytes": size,
+            "source": "local-file",
+            "license": "unknown",
+        });
+        let mut reader = connect(endpoint, app, VERSION_BASE)?;
+        reader.inner.write_all(&encode(&json!({"type": "register_models", "models": [model]}), MAX_FRAME_V1)?)?;
+        let frame = reader.next_frame()?.ok_or_else(|| Error::Protocol("no registration reply".into()))?;
+        let v: Value = serde_json::from_slice(&frame).map_err(|e| Error::Protocol(e.to_string()))?;
+        match v.get("type").and_then(Value::as_str) {
+            Some("registered") => Ok(()),
+            Some("registry_error") => Err(Error::Registry(v.get("kind").and_then(Value::as_str).unwrap_or("unknown").into())),
+            _ => Err(Error::Protocol(format!("register reply {v}"))),
         }
     }
 
@@ -334,6 +463,40 @@ mod net {
         reader.inner.set_read_timeout(Some(POLL))?;
         let mut writer = reader.inner.try_clone()?;
         drive(&mut reader, cancel, timeouts, |b| writer.write_all(b), on_chunk)
+    }
+}
+
+/// Whether a daemon accepts connections on `endpoint` right now.
+pub fn is_listening(endpoint: &std::path::Path) -> bool {
+    #[cfg(unix)]
+    return std::os::unix::net::UnixStream::connect(endpoint).is_ok();
+    #[cfg(not(unix))]
+    {
+        let _ = endpoint;
+        false
+    }
+}
+
+/// Start the daemon unless something already listens on `endpoint`; see [`find_daemon`].
+/// `socket_env` is handed to it as `SHAREDAI_SOCKET` (its parent is created, mode 0700).
+pub fn ensure_running(endpoint: &std::path::Path, socket_env: Option<&std::path::Path>) -> Result<(), Error> {
+    #[cfg(unix)]
+    return net::ensure_running(endpoint, socket_env);
+    #[cfg(not(unix))]
+    {
+        let _ = (endpoint, socket_env);
+        Err(Error::Unsupported)
+    }
+}
+
+/// Register the model file at `path` (absolute) under `id`, with its size and SHA-256.
+pub fn register_file(endpoint: &std::path::Path, app: &str, id: &str, path: &std::path::Path) -> Result<(), Error> {
+    #[cfg(unix)]
+    return net::register_file(endpoint, app, id, path);
+    #[cfg(not(unix))]
+    {
+        let _ = (endpoint, app, id, path);
+        Err(Error::Unsupported)
     }
 }
 

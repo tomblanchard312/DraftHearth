@@ -1,7 +1,9 @@
-//! Nisaba's Assistant: put a model's suggestion into the document as tracked changes.
+//! Nisaba's writing assistant ([`wordcraft_brand::ASSISTANT_NAME`]): put a model's suggestion
+//! into the document as tracked changes.
 //!
-//! The model runs elsewhere (the SharedAI daemon, driven by the Assistant pane in the UI); the
-//! engine only applies the result, so scripts, the CLI and MCP agents get the same behaviour.
+//! The model runs elsewhere (a local SharedAI daemon, driven by the pane in the UI; users only
+//! see the assistant's name); the engine only applies the result, so scripts, the CLI and MCP
+//! agents get the same behaviour.
 //! Suggestions always land as revisions by a separate author, so the writer reviews them with
 //! Review › Accept / Reject like any colleague's edits.
 
@@ -10,31 +12,35 @@ use serde_json::{Value, json};
 
 /// The revision author for applied suggestions.
 pub fn author() -> String {
-    format!("{} Assistant", wordcraft_brand::NAME)
+    wordcraft_brand::ASSISTANT_NAME.to_string()
 }
 
 /// The largest suggestion accepted in one call (a long chapter, not a whole book).
 pub const MAX_TEXT_BYTES: usize = 1 << 20;
 
+/// Where the assistant's commands live (Review tab, its own group).
+const LOCATION: &str = concat!("Review › ", wordcraft_brand::assistant_name!());
+
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("view.assistantPane", "Assistant", "Review › Assistant", |s, v| {
+        CommandSpec::new("view.assistantPane", wordcraft_brand::ASSISTANT_NAME, LOCATION, |s, v| {
             let cur = s.view.assistant_pane;
             s.view.assistant_pane = p::bool(v, "value").unwrap_or(!cur);
             Ok(json!({"value": s.view.assistant_pane}))
         })
         .params(r#"{"value"?: bool}"#)
         .pure(),
-        CommandSpec::new("assistant.settings", "Assistant Settings", "Review › Assistant", settings)
-            .params(r#"{"socket"?: string (SharedAI socket path; "" for the default), "model"?: string (model id; "" for the first registered)}"#)
+        CommandSpec::new("assistant.settings", concat!(wordcraft_brand::assistant_name!(), " Settings"), LOCATION, settings)
+            .params(r#"{"socket"?: string (model service socket for scripts and packagers; "" for the default), "model"?: string (model id; "" for the first registered)}"#)
             .pure(),
-        CommandSpec::new("assistant.apply", "Apply Suggestion", "Review › Assistant", apply).params(
+        CommandSpec::new("assistant.apply", "Apply Suggestion", LOCATION, apply).params(
             r#"{"text": string (plain text; blank lines become paragraphs), "mode"?: "replace" (the selection, default) | "after" (inserted after the selection)}"#,
         ),
     ]
 }
 
-/// The SharedAI socket and model the Assistant pane uses (saved with the other preferences).
+/// The model service socket and model the assistant uses (saved with the other preferences).
+/// The socket is never shown in the interface; it is for scripts and packagers.
 fn settings(s: &mut Session, v: &Value) -> CmdResult {
     let clean = |t: &str| t.trim().chars().filter(|c| !c.is_control()).take(1024).collect::<String>();
     if let Some(t) = p::str(v, "socket") {

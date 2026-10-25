@@ -30,6 +30,9 @@ finish-args:
   # line, Open Recent, "Save" next to the original) work in the usual places.
   - --filesystem=xdg-documents
   - --filesystem=xdg-pictures
+  # The Assistant talks to the SharedAI daemon on the host through its private socket
+  # ($XDG_RUNTIME_DIR/sharedai/ipc.sock); only that folder of the runtime directory is shared.
+  - --filesystem=xdg-run/sharedai
   # Deliberately not granted: network (the optional --control server listens on 127.0.0.1 in
   # the sandbox; `flatpak override --user --share=network io.github.tomblanchard312.Nisaba` exposes it to
   # host agents) and home/host filesystem access.
@@ -44,7 +47,7 @@ modules:
       # Already has the release's version and date substituted by package.sh.
       - install -Dm644 share/metainfo/io.github.tomblanchard312.Nisaba.metainfo.xml /app/share/metainfo/io.github.tomblanchard312.Nisaba.metainfo.xml
       # Docs include the licences of the embedded craft-fonts (OFL-*.txt).
-      - mkdir -p /app/share/icons /app/share/doc && cp -R share/icons/hicolor /app/share/icons/ && cp -R share/doc/wordcraft /app/share/doc/
+      - mkdir -p /app/share/icons /app/share/doc && cp -R share/icons/hicolor /app/share/icons/ && cp -R share/doc/nisaba /app/share/doc/
     sources:
       - type: dir
         path: stage

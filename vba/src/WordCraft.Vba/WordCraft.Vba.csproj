@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>wcvba</AssemblyName>
+    <RootNamespace>WordCraft.Vba</RootNamespace>
+  </PropertyGroup>
+
+  <!-- The VB compiler that ships inside the .NET SDK, so no NuGet download is needed.
+       Override RoslynDir to use another copy (e.g. the Microsoft.CodeAnalysis.VisualBasic package). -->
+  <PropertyGroup>
+    <RoslynDir Condition="'$(RoslynDir)' == ''">$(RoslynTargetsPath)/bincore</RoslynDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CodeAnalysis"><HintPath>$(RoslynDir)/Microsoft.CodeAnalysis.dll</HintPath></Reference>
+    <Reference Include="Microsoft.CodeAnalysis.VisualBasic"><HintPath>$(RoslynDir)/Microsoft.CodeAnalysis.VisualBasic.dll</HintPath></Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WordCraft.ObjectModel\WordCraft.ObjectModel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WordCraft.Vba.Tests" />
+  </ItemGroup>
+
+</Project>

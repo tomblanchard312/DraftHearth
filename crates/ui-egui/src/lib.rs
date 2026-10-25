@@ -22,6 +22,7 @@ macro_rules! tl {
 
 pub mod a11y;
 pub mod a11y_pane;
+pub mod assistant_pane;
 pub mod async_saves;
 pub mod autoscroll;
 pub mod backstage;
@@ -550,6 +551,8 @@ pub struct WordApp {
     pub colors: Option<colors::ColorsDialog>,
     /// The Restrict Editing pane (#412).
     pub restrict: dialogs_review::RestrictPane,
+    /// Review › Assistant: the SharedAI request in flight and its reply.
+    pub assistant: assistant_pane::State,
     pub status_msg: Option<(String, f64)>,
     pub previews: previews::Previews,
     /// Media key of the picture a pending Change Picture replaces (#147).
@@ -714,6 +717,7 @@ impl WordApp {
             dialog: None,
             colors: None,
             restrict: Default::default(),
+            assistant: Default::default(),
             status_msg: None,
             previews: previews::Previews::default(),
             integrated_titlebar: false,

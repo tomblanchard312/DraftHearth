@@ -8,8 +8,8 @@ Nisaba is a fork of [WordCraft](https://github.com/storytold/wordcraft) by the A
 community. It follows WordCraft closely and adds what a desktop built around local AI needs:
 
 - **A built-in assistant** through [SharedAI](https://github.com/tomblanchard312/SharedAI), the
-  per-user local model service: draft, rewrite and summarize without anything leaving the machine
-  (in progress).
+  per-user local model service: rewrite and draft without anything leaving the machine. Suggestions
+  arrive as tracked changes you accept or reject (Review › Assistant; see [docs/assistant.md](docs/assistant.md)).
 - **A FreeBSD and KDE Plasma home**: packaging and defaults for a FreeBSD desktop distribution,
   alongside the Linux, macOS, Windows and web builds WordCraft already has.
 

@@ -6794,6 +6794,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "wordcraft-sharedai"
+version = "0.10.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "wordcraft-ui-egui"
 version = "0.10.0"
 dependencies = [
@@ -6818,6 +6825,7 @@ dependencies = [
  "wordcraft-geom",
  "wordcraft-layout",
  "wordcraft-render",
+ "wordcraft-sharedai",
  "wordcraft-zotero",
  "zbus",
  "zip",

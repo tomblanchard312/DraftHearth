@@ -64,6 +64,13 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
             .frame(egui::Frame::NONE.fill(t.panel).inner_margin(10).stroke(Stroke::new(1.0, t.border)))
             .show(ui, |ui| crate::a11y_pane::accessibility(app, ui));
     }
+    if app.session.view.assistant_pane {
+        egui::Panel::right("assistant_pane")
+            .default_size(300.0)
+            .resizable(true)
+            .frame(egui::Frame::NONE.fill(t.panel).inner_margin(10).stroke(Stroke::new(1.0, t.border)))
+            .show(ui, |ui| crate::assistant_pane::pane(app, ui));
+    }
     if app.session.view.alt_text_pane {
         egui::Panel::right("alt_text_pane")
             .default_size(260.0)

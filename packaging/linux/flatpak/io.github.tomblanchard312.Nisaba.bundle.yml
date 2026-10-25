@@ -33,6 +33,9 @@ finish-args:
   # The Assistant talks to the SharedAI daemon on the host through its private socket
   # ($XDG_RUNTIME_DIR/sharedai/ipc.sock); only that folder of the runtime directory is shared.
   - --filesystem=xdg-run/sharedai
+  # The models folder every app shares (~/.local/share/SharedAI/models) and the service's model
+  # registry beside it, for the service Nisaba starts when none is running on the host.
+  - --filesystem=xdg-data/SharedAI:create
   # Deliberately not granted: network (the optional --control server listens on 127.0.0.1 in
   # the sandbox; `flatpak override --user --share=network io.github.tomblanchard312.Nisaba` exposes it to
   # host agents) and home/host filesystem access.

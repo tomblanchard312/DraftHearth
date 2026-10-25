@@ -181,6 +181,8 @@ pub struct State {
     /// The service couldn't be reached or started; the pane offers Try Again.
     unavailable: bool,
     asked_models: bool,
+    /// When the model list was last fetched (`egui` input time), to look again while it is empty.
+    listed_at: f64,
     job: Option<Job>,
     origin: Option<Origin>,
 }
@@ -215,10 +217,8 @@ impl State {
                         Ok(m) => {
                             self.unavailable = false;
                             self.status.clear();
-                            if !m.iter().any(|x| x == prefs_model)
-                                && let Some(first) = m.first()
-                            {
-                                chosen = Some(first.clone());
+                            if !m.iter().any(|x| x == prefs_model) {
+                                chosen = pick_default(&m);
                             }
                             self.models = m;
                         }
@@ -302,18 +302,39 @@ pub fn friendly(e: &wordcraft_sharedai::Error) -> String {
     }
 }
 
+fn in_flatpak() -> bool {
+    Path::new("/.flatpak-info").exists()
+}
+
+/// The user's real data folder: `$XDG_DATA_HOME` or `~/.local/share`. Inside a Flatpak
+/// `$XDG_DATA_HOME` is the app's private folder, so the host's `~/.local/share` is used (the
+/// sandbox may see its `SharedAI` folder, `--filesystem=xdg-data/SharedAI`).
+fn data_home() -> Option<PathBuf> {
+    let home = || std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local").join("share"));
+    if in_flatpak() {
+        return home();
+    }
+    std::env::var_os("XDG_DATA_HOME").filter(|d| !d.is_empty()).map(PathBuf::from).or_else(home)
+}
+
+/// The one models folder every app shares, `~/.local/share/SharedAI/models`. The model service
+/// registers whatever GGUF files are put there; Scribe keeps no models of its own.
+pub fn shared_models_dir() -> Option<PathBuf> {
+    data_home().map(|d| d.join("SharedAI").join("models"))
+}
+
 /// The model service to use, started if it isn't running. A socket set by a packager or script
 /// (`assistant.settings`) wins; otherwise the shared per-user service. Inside a Flatpak, where
-/// that service can't be created, the app runs a private one unless a host service already
-/// listens.
+/// that service's socket folder can't be created, the app runs one on a private socket unless
+/// a host service already listens; it still uses the shared models folder and registry.
 fn service(socket_pref: &str) -> Result<PathBuf, wordcraft_sharedai::Error> {
     if !socket_pref.trim().is_empty() {
         let ep = PathBuf::from(socket_pref.trim());
-        wordcraft_sharedai::ensure_running(&ep, Some(&ep))?;
+        wordcraft_sharedai::ensure_running(&ep, Some(&ep), &[])?;
         return Ok(ep);
     }
     let shared = wordcraft_sharedai::endpoint("");
-    if Path::new("/.flatpak-info").exists() {
+    if in_flatpak() {
         if let Ok(ep) = &shared
             && wordcraft_sharedai::is_listening(ep)
         {
@@ -321,27 +342,31 @@ fn service(socket_pref: &str) -> Result<PathBuf, wordcraft_sharedai::Error> {
         }
         let dir = std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).ok_or(wordcraft_sharedai::Error::NoEndpoint)?;
         let ep = dir.join("scribe").join("ipc.sock");
-        wordcraft_sharedai::ensure_running(&ep, Some(&ep))?;
+        let data = data_home().ok_or(wordcraft_sharedai::Error::NoEndpoint)?;
+        private_dir(&data.join("SharedAI"))?;
+        wordcraft_sharedai::ensure_running(&ep, Some(&ep), &[("XDG_DATA_HOME", data.as_os_str())])?;
         return Ok(ep);
     }
     let ep = shared?;
-    wordcraft_sharedai::ensure_running(&ep, None)?;
+    wordcraft_sharedai::ensure_running(&ep, None, &[])?;
     Ok(ep)
 }
 
-/// Where added model files are kept: `$XDG_DATA_HOME/nisaba/models` (inside a Flatpak, the app's
-/// own data folder).
-fn models_dir() -> Option<PathBuf> {
-    let data = std::env::var_os("XDG_DATA_HOME")
-        .filter(|d| !d.is_empty())
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local").join("share")))?;
-    Some(data.join(wordcraft_brand::SETTINGS_DIR_XDG).join("models"))
+/// Make `dir` exist with mode 0700, as the model service requires of its data folder (the
+/// Flatpak permission may have created it with looser permissions).
+fn private_dir(dir: &Path) -> Result<(), wordcraft_sharedai::Error> {
+    std::fs::create_dir_all(dir)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
+    }
+    Ok(())
 }
 
-/// Copy `src` into the models folder (private to the user) unless it is already there.
+/// Copy `src` into the shared models folder (mode 0600) unless it is already there.
 fn keep_model_file(src: &Path) -> Result<PathBuf, wordcraft_sharedai::Error> {
-    let dir = models_dir().ok_or(wordcraft_sharedai::Error::NoEndpoint)?;
+    let dir = shared_models_dir().ok_or(wordcraft_sharedai::Error::NoEndpoint)?;
     std::fs::create_dir_all(&dir)?;
     let src = src.canonicalize()?;
     let dir = dir.canonicalize()?;
@@ -361,6 +386,15 @@ fn keep_model_file(src: &Path) -> Result<PathBuf, wordcraft_sharedai::Error> {
     Ok(dst)
 }
 
+/// The model to use when none is chosen: a general instruct or chat model, not one made for
+/// documents, embeddings or images.
+pub fn pick_default(models: &[String]) -> Option<String> {
+    let lower = |m: &String| m.to_ascii_lowercase();
+    let special = |m: &String| ["docling", "embed", "rerank", "mmproj", "vision", "whisper", "clip", "ocr"].iter().any(|k| lower(m).contains(k));
+    let chatty = |m: &String| ["instruct", "chat", "-it"].iter().any(|k| lower(m).contains(k));
+    models.iter().find(|m| chatty(m) && !special(m)).or_else(|| models.iter().find(|m| !special(m))).or_else(|| models.first()).cloned()
+}
+
 fn refresh_models(app: &mut WordApp) {
     let socket = app.session.prefs.assistant_socket.clone();
     let job = spawn(Work::Starting, move |tx, _| {
@@ -377,9 +411,8 @@ fn refresh_models(app: &mut WordApp) {
     }
 }
 
-/// Add the model file at `path`: copy it into Nisaba's models folder, register it with its
-/// checksum, and select it. Runs in the background; the pane reports when it's ready. Used by
-/// the pane's Choose Model File… and by `ui.assistant.addModel {path}`.
+/// Add the model file at `path` for scripts (`ui.assistant.addModel {path}`): copy it into the
+/// shared models folder, register it with its checksum, and select it. Runs in the background.
 pub fn add_model(app: &mut WordApp, path: &str) -> Result<Value, String> {
     if app.assistant.job.is_some() {
         return Err(crate::i18n::fmt(tl!("{name} is busy. Try again in a moment."), &[("name", NAME)]));
@@ -409,10 +442,6 @@ pub fn add_model(app: &mut WordApp, path: &str) -> Result<Value, String> {
     app.assistant.job = Some(job);
     app.assistant.status.clear();
     Ok(json!({"adding": path}))
-}
-
-fn choose_model_file(app: &mut WordApp) {
-    let _ = app.ask_file(crate::file_dialogs::FileDialogRequest::Open { purpose: "model".into() }, crate::file_dialogs::AfterPick::AssistantModel);
 }
 
 fn ask(app: &mut WordApp, action: Option<Action>) {
@@ -502,8 +531,14 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
     if app.assistant.job.is_some() {
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(50));
     }
-    if !app.assistant.asked_models && app.assistant.job.is_none() {
+    let now = ui.input(|i| i.time);
+    let look_again = app.assistant.listed && app.assistant.models.is_empty() && !app.assistant.unavailable && now - app.assistant.listed_at > 5.0;
+    if (!app.assistant.asked_models || look_again) && app.assistant.job.is_none() {
+        app.assistant.listed_at = now;
         refresh_models(app);
+    }
+    if app.assistant.listed && app.assistant.models.is_empty() {
+        ui.ctx().request_repaint_after(std::time::Duration::from_secs(1));
     }
     let work = app.assistant.job.as_ref().map(|j| j.work);
     let busy = work.is_some();
@@ -536,15 +571,22 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
         return;
     }
 
-    // First run: no model yet.
+    // No model yet: they live in the shared models folder, which the service watches.
     if app.assistant.listed && app.assistant.models.is_empty() {
         ui.label(crate::i18n::fmt(tl!("{name} needs a language model before it can write."), &[("name", NAME)]));
-        ui.add_space(6.0);
-        if ui.button(tl!("Choose Model File…")).clicked() {
-            choose_model_file(app);
-        }
         ui.add_space(4.0);
-        ui.label(egui::RichText::new(tl!("Any GGUF chat model works, for example Qwen2.5 1.5B Instruct.")).small().weak());
+        ui.label(
+            egui::RichText::new(tl!("Put a GGUF chat model in your models folder, the one your other apps share. Scribe finds it by itself."))
+                .small()
+                .weak(),
+        );
+        ui.add_space(6.0);
+        if ui.button(tl!("Open Models Folder")).clicked() {
+            match shared_models_dir() {
+                Some(dir) if std::fs::create_dir_all(&dir).is_ok() => app.canvas.open_url = Some(format!("file://{}", dir.display())),
+                _ => app.assistant.status = tl!("The models folder can't be opened.").to_string(),
+            }
+        }
         if !app.assistant.status.is_empty() {
             ui.add_space(4.0);
             ui.label(egui::RichText::new(app.assistant.status.as_str()).small());
@@ -688,6 +730,16 @@ mod tests {
             assert!(!m.is_empty());
         }
         assert!(friendly(&E::NotInstalled).contains(NAME));
+    }
+
+    #[test]
+    fn the_default_model_is_a_general_chat_model() {
+        let m = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let tom = m(&["Qwen3.5-4B-Q4_K_M", "granite-docling-258M-Q8_0", "qwen2.5-0.5b-instruct-q4_k_m"]);
+        assert_eq!(pick_default(&tom).as_deref(), Some("qwen2.5-0.5b-instruct-q4_k_m"));
+        assert_eq!(pick_default(&m(&["granite-docling-258M-Q8_0", "Qwen3.5-4B-Q4_K_M"])).as_deref(), Some("Qwen3.5-4B-Q4_K_M"));
+        assert_eq!(pick_default(&m(&["nomic-embed-text"])).as_deref(), Some("nomic-embed-text"));
+        assert_eq!(pick_default(&[]), None);
     }
 
     #[test]

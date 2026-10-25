@@ -18,7 +18,7 @@ VBA (.bas/.cls) ──► Transpiler ──► VB.NET ──► Roslyn (Option S
 
 ## Quick start
 
-Requires the .NET 8 SDK. No NuGet packages: the VB compiler comes from the SDK (`RoslynDir` overrides it).
+Requires a .NET 8 (or newer) SDK. There are no package dependencies: the VB compiler comes from the SDK (`RoslynDir` overrides it). Restore still fetches the .NET 8 targeting packs from nuget.org when the SDK doesn't include them (distro SDKs, or a .NET 9/10 SDK building for .NET 8). Offline, with packs already installed, restore with a config that clears the sources: `dotnet restore --configfile <file with <packageSources><clear/></packageSources>>`.
 
 ```sh
 cd vba

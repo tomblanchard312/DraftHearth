@@ -1,8 +1,10 @@
-# wordcraft-vba
+# Nisaba VBA
 
-Run Word VBA macros against [WordCraft](https://github.com/storytold/wordcraft). VBA is transpiled to VB.NET, compiled in memory with Roslyn, checked against an allow-list, and run against a Word object model implemented over WordCraft's command protocol.
+Run Word VBA macros against Nisaba (or upstream [WordCraft](https://github.com/storytold/wordcraft)). VBA is transpiled to VB.NET, compiled in memory with Roslyn, checked against an allow-list, and run against a Word object model implemented over the app's command protocol.
 
-**Status:** spike. The 30 tests pass against real WordCraft 0.10 (headless `wordcraft-cli mcp`) and against the in-memory `FakeEngine`.
+This folder was the separate `wordcraft-vba` repository; its history is kept in Nisaba's. It is an optional .NET component: `cargo` doesn't build it and `cargo xtask ci` doesn't run it. The C# namespaces keep their `WordCraft.*` names, as Nisaba's Rust crates do. Licence: MIT OR Apache-2.0, like the rest of the repository.
+
+**Status:** spike. The 31 tests pass against the in-memory `FakeEngine` and against Nisaba's headless `wordcraft-cli mcp` (the cargo build's name for `nisaba-cli`).
 
 ```
 VBA (.bas/.cls) ──► Transpiler ──► VB.NET ──► Roslyn (Option Strict Off) ──► MacroSecurity ──► run
@@ -11,7 +13,7 @@ VBA (.bas/.cls) ──► Transpiler ──► VB.NET ──► Roslyn (Option S
                                 │  WordCraft command ids, JSON
             ┌───────────────────┴───────────────────┐
      ControlChannelEngine                    McpStdioEngine
-     (running window, --control PORT)        (headless, wordcraft-cli mcp)
+     (running window, --control PORT)        (headless, nisaba-cli mcp)
 ```
 
 ## Quick start
@@ -19,9 +21,11 @@ VBA (.bas/.cls) ──► Transpiler ──► VB.NET ──► Roslyn (Option S
 Requires the .NET 8 SDK. No NuGet packages: the VB compiler comes from the SDK (`RoslynDir` overrides it).
 
 ```sh
+cd vba
 dotnet build
-dotnet tests/WordCraft.Vba.Tests/bin/Debug/net8.0/WordCraft.Vba.Tests.dll   # 24 tests on FakeEngine
-WCVBA_CLI=/path/to/wordcraft-cli dotnet tests/WordCraft.Vba.Tests/bin/Debug/net8.0/WordCraft.Vba.Tests.dll   # same tests on WordCraft
+dotnet tests/WordCraft.Vba.Tests/bin/Debug/net8.0/WordCraft.Vba.Tests.dll   # on FakeEngine
+cargo build --release -p wordcraft-cli --manifest-path ../Cargo.toml
+WCVBA_CLI=../target/release/wordcraft-cli dotnet tests/WordCraft.Vba.Tests/bin/Debug/net8.0/WordCraft.Vba.Tests.dll   # same tests on Nisaba
 
 dotnet run --project src/WordCraft.Vba -- transpile samples/Cleanup.bas
 dotnet run --project src/WordCraft.Vba -- check samples/Evil.bas            # rejected
@@ -29,14 +33,16 @@ dotnet run --project src/WordCraft.Vba -- run samples/Cleanup.bas --macro Main -
 
 # macro-enabled documents: modules are read straight from the file
 dotnet run --project src/WordCraft.Vba -- list report.docm
-dotnet run --project src/WordCraft.Vba -- run report.docm --macro Main --cli /path/to/wordcraft-cli --save out.docm
+dotnet run --project src/WordCraft.Vba -- run report.docm --macro Main --cli nisaba-cli --save out.docm
 dotnet run --project src/WordCraft.Vba -- pack samples/Cleanup.bas --into plain.docx --out report.docm   # test documents
 
-# real WordCraft
-wordcraft --control 7981 &
+# a running Nisaba window
+nisaba --control 7981 &
 dotnet run --project src/WordCraft.Vba -- run samples/Cleanup.bas --macro Main --connect 7981
-dotnet run --project src/WordCraft.Vba -- run samples/Cleanup.bas --macro Main --cli /path/to/wordcraft-cli --doc in.docx --save out.docx
+dotnet run --project src/WordCraft.Vba -- run samples/Cleanup.bas --macro Main --cli nisaba-cli --doc in.docx --save out.docx
 ```
+
+`--connect` reads the window's key from `WORDCRAFT_CONTROL_KEY`, else from `control-key.local-<port>` in Nisaba's settings folder (`~/.config/nisaba`, or `Nisaba` under Application Support / `%APPDATA%`), then WordCraft's. `WORDCRAFT_PROFILE_DIR` overrides both, as it does for the app. `Application.Name` is "Nisaba".
 
 ## How the object model maps to WordCraft
 
@@ -81,6 +87,8 @@ WordCraft keeps the VBA project when it saves a .docm; a test checks that.
 ## Known gaps
 
 - Only the headless transport (`--cli`) has been tested; the control channel to a running window (`--connect`) has not.
+- Nisaba has no Developer › Macros screen yet: macros run from this command line tool.
+- Shipping it by default means shipping .NET (on FreeBSD, the `lang/dotnet` port).
 - `Property Get/Let/Set`, UserForms (skipped with a warning), events (`Document_Open`, `AutoOpen` don't run on open). Writing edited macros back into a document.
 - Headers, footers, notes, fields as Word counts them (WordCraft shows a field's result), tables (`Tables`, `Cells`), `Font.Size`/`Name` from styles (only explicit run formatting is read), `Find` with formatting.
 - `(1 To n)` arrays become 0-based arrays one element longer: `LBound` is 0 and `For Each` sees an extra empty first element.

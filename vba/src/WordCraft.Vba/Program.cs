@@ -17,9 +17,9 @@ const string Usage = """
     own macros opens that document unless --doc names another one.
 
     engines:
-      --connect <port>                 a running window (wordcraft --control <port>)
-      --cli <wordcraft-cli> [--doc <in>] [--save <out>]
-                                       a headless session (wordcraft-cli mcp)
+      --connect <port>                 a running window (nisaba --control <port>)
+      --cli <nisaba-cli> [--doc <in>] [--save <out>]
+                                       a headless session (nisaba-cli mcp; wordcraft-cli in a cargo build)
       --fake "<para 1>|<para 2>"       the in-memory test engine; prints the result
 
     --unsafe    skip the security rules (trusted macros only)

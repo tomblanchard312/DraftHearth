@@ -83,6 +83,22 @@ static class Tests
 
     // ---- story map ----------------------------------------------------------------------------
 
+    public static void Control_key_is_looked_up_in_Nisaba_then_WordCraft()
+    {
+        var saved = Environment.GetEnvironmentVariable("WORDCRAFT_PROFILE_DIR");
+        try
+        {
+            Environment.SetEnvironmentVariable("WORDCRAFT_PROFILE_DIR", null);
+            var dirs = WordCraft.ObjectModel.Transport.ControlChannelEngine.SettingsDirs();
+            Assert.Equal(2, dirs.Count, "two candidate folders");
+            Assert.True(Path.GetFileName(dirs[0]).Equals("nisaba", StringComparison.OrdinalIgnoreCase), $"Nisaba first: {dirs[0]}");
+            Assert.True(Path.GetFileName(dirs[1]).Equals("wordcraft", StringComparison.OrdinalIgnoreCase), $"WordCraft second: {dirs[1]}");
+            Environment.SetEnvironmentVariable("WORDCRAFT_PROFILE_DIR", "/tmp/profile");
+            Assert.Equal(new[] { "/tmp/profile" }, WordCraft.ObjectModel.Transport.ControlChannelEngine.SettingsDirs().ToArray(), "profile override");
+        }
+        finally { Environment.SetEnvironmentVariable("WORDCRAFT_PROFILE_DIR", saved); }
+    }
+
     public static void StoryMap_positions_round_trip_through_utf8_offsets()
     {
         var (_, app) = Open("Café 😀 bar", "Second");

@@ -17,8 +17,8 @@ public sealed class Application
         Documents.Attach(openPath);
     }
 
-    public string Name => "WordCraft";
-    public string Version => "16.0"; // macros branch on this; WordCraft targets Word 16 (Microsoft 365) behaviour
+    public string Name => "Nisaba";
+    public string Version => "16.0"; // macros branch on this; Nisaba targets Word 16 (Microsoft 365) behaviour
     public Documents Documents { get; }
     public Selection Selection { get; }
 

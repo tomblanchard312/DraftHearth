@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 namespace WordCraft.ObjectModel.Transport;
 
 /// <summary>
-/// Drives a running WordCraft window over its control channel (<c>wordcraft --control PORT</c>):
+/// Drives a running Nisaba (or WordCraft) window over its control channel (<c>nisaba --control PORT</c>):
 /// one JSON object per line on 127.0.0.1, authorised with the window's key.
 /// See docs/control-protocol.md in the WordCraft repository.
 /// </summary>
@@ -30,15 +30,20 @@ public sealed class ControlChannelEngine : IEngine
         Send(new JsonObject { ["method"] = "auth", ["key"] = key }, "auth");
     }
 
-    /// <summary>Connects to a window on this machine, reading its key from WORDCRAFT_CONTROL_KEY or its key file.</summary>
+    /// <summary>
+    /// Connects to a window on this machine, reading its key from WORDCRAFT_CONTROL_KEY or its key
+    /// file: Nisaba's settings folder first, then upstream WordCraft's.
+    /// </summary>
     public static ControlChannelEngine Connect(int port, string host = "127.0.0.1")
     {
         var key = Environment.GetEnvironmentVariable("WORDCRAFT_CONTROL_KEY");
         if (string.IsNullOrWhiteSpace(key))
         {
-            var file = Path.Combine(SettingsDir(), $"control-key.local-{port}");
-            if (!File.Exists(file))
-                throw new FileNotFoundException($"No control key at {file}. Start WordCraft with --control {port}, or set WORDCRAFT_CONTROL_KEY.");
+            var name = $"control-key.local-{port}";
+            var dirs = SettingsDirs();
+            var file = dirs.Select(d => Path.Combine(d, name)).FirstOrDefault(File.Exists)
+                ?? throw new FileNotFoundException(
+                    $"No control key {name} in {string.Join(" or ", dirs)}. Start Nisaba with --control {port}, or set WORDCRAFT_CONTROL_KEY.");
             key = File.ReadAllText(file).Trim();
         }
         return new ControlChannelEngine(host, port, key);
@@ -55,7 +60,7 @@ public sealed class ControlChannelEngine : IEngine
     {
         request["id"] = ++_id;
         _writer.WriteLine(request.ToJsonString());
-        var line = _reader.ReadLine() ?? throw new EngineException(what, "WordCraft closed the connection");
+        var line = _reader.ReadLine() ?? throw new EngineException(what, "the app closed the connection");
         var reply = JsonNode.Parse(line)?.AsObject() ?? throw new EngineException(what, "empty reply");
         if (reply["ok"]?.GetValue<bool>() != true)
             throw new EngineException(what, reply["error"]?.ToString() ?? "unknown error");
@@ -66,17 +71,25 @@ public sealed class ControlChannelEngine : IEngine
         host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
         (IPAddress.TryParse(host, out var ip) && IPAddress.IsLoopback(ip));
 
-    static string SettingsDir()
+    /// <summary>
+    /// Where the app writes its key file: WORDCRAFT_PROFILE_DIR if set, else the per-user settings
+    /// folder of Nisaba and then of WordCraft (Nisaba keeps WordCraft's environment variable names).
+    /// </summary>
+    public static IReadOnlyList<string> SettingsDirs()
     {
         var profile = Environment.GetEnvironmentVariable("WORDCRAFT_PROFILE_DIR");
-        if (!string.IsNullOrEmpty(profile)) return profile;
-        if (OperatingSystem.IsWindows())
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WordCraft");
+        if (!string.IsNullOrEmpty(profile)) return [profile];
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (OperatingSystem.IsMacOS())
-            return Path.Combine(home, "Library", "Application Support", "WordCraft");
-        var xdg = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-        return Path.Combine(string.IsNullOrEmpty(xdg) ? Path.Combine(home, ".config") : xdg, "wordcraft");
+        string Root()
+        {
+            if (OperatingSystem.IsWindows()) return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            if (OperatingSystem.IsMacOS()) return Path.Combine(home, "Library", "Application Support");
+            var xdg = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+            return string.IsNullOrEmpty(xdg) ? Path.Combine(home, ".config") : xdg;
+        }
+        // Linux and BSD use lower-case folder names; Windows and macOS capitalised ones.
+        var lower = !OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS();
+        return [Path.Combine(Root(), lower ? "nisaba" : "Nisaba"), Path.Combine(Root(), lower ? "wordcraft" : "WordCraft")];
     }
 
     public void Dispose()

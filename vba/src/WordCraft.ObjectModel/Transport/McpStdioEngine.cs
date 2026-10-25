@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 namespace WordCraft.ObjectModel.Transport;
 
 /// <summary>
-/// Runs a headless WordCraft session through <c>wordcraft-cli mcp</c> (MCP over stdio, newline-delimited JSON-RPC).
+/// Runs a headless session through <c>nisaba-cli mcp</c> (or upstream <c>wordcraft-cli mcp</c>) (MCP over stdio, newline-delimited JSON-RPC).
 /// No window is needed, so this is the transport for batch runs and CI.
 /// </summary>
 public sealed class McpStdioEngine : IEngine
@@ -14,7 +14,7 @@ public sealed class McpStdioEngine : IEngine
     readonly StringBuilder _stderr = new();
     int _id;
 
-    /// <param name="cliPath">Path to wordcraft-cli.</param>
+    /// <param name="cliPath">Path to nisaba-cli (installed name) or wordcraft-cli (the name in a cargo build).</param>
     /// <param name="extraArgs">Extra arguments after <c>mcp</c>, e.g. --automation-read-root DIR --automation-write-root DIR.</param>
     public McpStdioEngine(string cliPath, params string[] extraArgs)
     {
@@ -71,7 +71,7 @@ public sealed class McpStdioEngine : IEngine
             {
                 string err;
                 lock (_stderr) err = _stderr.ToString();
-                throw new EngineException(method, $"wordcraft-cli exited. {err}".Trim());
+                throw new EngineException(method, $"{Path.GetFileName(_process.StartInfo.FileName)} exited. {err}".Trim());
             }
             if (string.IsNullOrWhiteSpace(line)) continue;
             var msg = JsonNode.Parse(line)?.AsObject();

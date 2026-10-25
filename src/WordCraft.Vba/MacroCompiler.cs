@@ -78,6 +78,11 @@ public static class MacroCompiler
         var transpiled = new List<TranspiledModule>();
         foreach (var module in modules)
         {
+            if (module.Kind == VbaModuleKind.Form)
+            {
+                diagnostics.Add(new MacroDiagnostic(module.Name, 0, "UserForms aren't supported yet; the form's code was skipped.", false));
+                continue;
+            }
             try
             {
                 var t = Transpiler.Transpile(module);

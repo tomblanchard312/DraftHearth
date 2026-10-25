@@ -3,7 +3,8 @@ using System.Text.RegularExpressions;
 
 namespace WordCraft.Vba;
 
-public enum VbaModuleKind { Standard, Class }
+/// <summary>Standard module, class module, a document's code (ThisDocument) or a UserForm.</summary>
+public enum VbaModuleKind { Standard, Class, Document, Form }
 
 /// <summary>One VBA module as exported from the VBA editor (.bas / .cls) or read from vbaProject.bin.</summary>
 public sealed record VbaModule(string Name, VbaModuleKind Kind, string Source)

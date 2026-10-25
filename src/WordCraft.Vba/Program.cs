@@ -6,9 +6,15 @@ using WordCraft.Vba.Testing;
 const string Usage = """
     wcvba — run Word VBA macros against WordCraft
 
-      wcvba transpile <module.bas|.cls>...          print the VB.NET translation
-      wcvba check     <module.bas|.cls>...          compile and apply the macro security rules
-      wcvba run       <module.bas|.cls>... --macro <[Module.]Name> <engine>
+      wcvba list      <file>...                     the VBA modules in a .docm/.dotm/.doc or vbaProject.bin
+      wcvba transpile <file>...                     print the VB.NET translation
+      wcvba check     <file>...                     compile and apply the macro security rules
+      wcvba run       <file>... --macro <[Module.]Name> <engine>
+      wcvba pack      <module.bas|.cls>... --into <in.docx> --out <out.docm>
+                                                    build a macro-enabled copy of a document (for testing)
+
+    <file> is an exported module (.bas, .cls) or a macro-enabled document. Running a document's
+    own macros opens that document unless --doc names another one.
 
     engines:
       --connect <port>                 a running window (wordcraft --control <port>)
@@ -24,10 +30,26 @@ if (args.Length < 2) { Console.Error.WriteLine(Usage); return 2; }
 var verb = args[0];
 var files = args.Skip(1).TakeWhile(a => !a.StartsWith("--")).ToList();
 string? Opt(string name) { int i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
-var modules = files.Select(VbaModule.FromFile).ToList();
+static bool IsDocument(string f) => Path.GetExtension(f).ToLowerInvariant() is ".docm" or ".dotm" or ".doc" or ".dot" or ".bin";
+var modules = files.SelectMany(f => IsDocument(f) ? WordCraft.Vba.Ole.VbaProjectReader.ReadFile(f) : [VbaModule.FromFile(f)]).ToList();
+var docFile = files.FirstOrDefault(f => IsDocument(f) && !f.EndsWith(".bin", StringComparison.OrdinalIgnoreCase));
 
 switch (verb)
 {
+    case "pack":
+    {
+        var into = Opt("--into") ?? throw new ArgumentException("--into <in.docx> is required");
+        var output = Opt("--out") ?? Path.ChangeExtension(into, ".docm");
+        WordCraft.Vba.Ole.VbaPackage.MakeMacroEnabled(into, WordCraft.Vba.Ole.VbaPackage.BuildProject(modules), output);
+        Console.WriteLine($"wrote {output} ({modules.Count} modules)");
+        return 0;
+    }
+
+    case "list":
+        foreach (var m in modules)
+            Console.WriteLine($"{m.Kind,-9} {m.Name,-24} {m.Source.Split('\n').Length,5} lines");
+        return 0;
+
     case "transpile":
         foreach (var m in modules)
         {
@@ -65,7 +87,7 @@ switch (verb)
         using (engine)
         {
             var app = new Application(engine);
-            if (Opt("--doc") is string doc) app.Documents.Open(doc);
+            if ((Opt("--doc") ?? (fake is null ? docFile : null)) is string doc) app.Documents.Open(doc);
             try
             {
                 project.Run(app, macro);

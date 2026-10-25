@@ -8,7 +8,7 @@ using WordCraft.Vba.Testing;
 // A dependency-free test runner (the build has no NuGet access): every public static void
 // method on Tests is a test.
 int passed = 0, failed = 0;
-foreach (var m in typeof(Tests).GetMethods(BindingFlags.Public | BindingFlags.Static).Where(m => m.ReturnType == typeof(void)))
+foreach (var m in new[] { typeof(Tests), typeof(DocmTests) }.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static)).Where(m => m.ReturnType == typeof(void)))
 {
     if (args.Length > 0 && !args.Any(a => m.Name.Contains(a, StringComparison.OrdinalIgnoreCase))) continue;
     try
@@ -457,5 +457,128 @@ static class Tests
             var r = MacroCompiler.Compile([new VbaModule("M", VbaModuleKind.Standard, src)]);
             Assert.True(!r.Success, "should be rejected: " + src.Replace("\n", " "));
         }
+    }
+}
+
+static class DocmTests
+{
+    static readonly string Cleanup = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "samples", "Cleanup.bas"));
+
+    public static void Ovba_compression_round_trips_and_shrinks_text()
+    {
+        var rnd = new Random(7);
+        foreach (var size in new[] { 0, 1, 7, 100, 4095, 4096, 4097, 9000, 20000 })
+        {
+            var text = System.Text.Encoding.ASCII.GetBytes(string.Concat(Enumerable.Range(0, size / 20 + 1).Select(i => $"Sub M{i % 13}()\r\n  x = {i}\r\n")).Substring(0, size));
+            var packed = WordCraft.Vba.Ole.OvbaCompression.Compress(text);
+            Assert.Equal(Convert.ToBase64String(text), Convert.ToBase64String(WordCraft.Vba.Ole.OvbaCompression.Decompress(packed)), $"text of {size}");
+            if (size > 1000) Assert.True(packed.Length < text.Length / 2, $"compressed {size} to {packed.Length}");
+            var noise = new byte[size];
+            rnd.NextBytes(noise);
+            // Incompressible data goes in raw chunks of exactly 4096 bytes, so a short last chunk gains zero padding.
+            var back = WordCraft.Vba.Ole.OvbaCompression.Decompress(WordCraft.Vba.Ole.OvbaCompression.Compress(noise));
+            Assert.Equal(Convert.ToBase64String(noise), Convert.ToBase64String(back[..size]), $"noise of {size}");
+            Assert.True(back.Skip(size).All(b => b == 0), "padding is zeros");
+        }
+    }
+
+    public static void Ovba_decodes_a_copy_token_by_hand()
+    {
+        // "aaaaaa": a literal 'a', then a copy token (offset 1, length 5) = 0x0002 with flag bit 1 set.
+        // Chunk: header 0xB003 (compressed, signature 0b011, size 4 + 2 - 3), flags 0x02, 'a', 02 00.
+        var got = WordCraft.Vba.Ole.OvbaCompression.Decompress(Convert.FromHexString("0103B002610200"));
+        Assert.Equal("aaaaaa", System.Text.Encoding.ASCII.GetString(got));
+        Assert.Equal("0103B002610200", Convert.ToHexString(WordCraft.Vba.Ole.OvbaCompression.Compress("aaaaaa"u8)), "and the encoder makes the same bytes");
+    }
+
+    public static void Compound_file_round_trips_many_streams()
+    {
+        var w = new WordCraft.Vba.Ole.CompoundFileWriter();
+        var big = new byte[10_000];
+        new Random(1).NextBytes(big);
+        w.AddStream("PROJECT", System.Text.Encoding.ASCII.GetBytes("Module=A"));
+        w.AddStream("VBA/dir", [1, 2, 3]);
+        for (int i = 0; i < 30; i++) w.AddStream($"VBA/Module{i}", System.Text.Encoding.ASCII.GetBytes(new string((char)('a' + i % 26), 100 + i * 37)));
+        w.AddStream("VBA/Big", big);
+        var r = new WordCraft.Vba.Ole.CompoundFileReader(w.ToArray());
+        Assert.Equal(32, r.Find("VBA")!.Children.Count, "every sibling is reachable");
+        Assert.Equal(new string('e', 100 + 4 * 37), System.Text.Encoding.ASCII.GetString(r.Read("VBA/module4")), "mini stream (case-insensitive name)");
+        Assert.Equal(Convert.ToBase64String(big), Convert.ToBase64String(r.Read("VBA/Big")), "regular sectors");
+    }
+
+    public static void Hostile_compound_files_fail_cleanly()
+    {
+        var good = new WordCraft.Vba.Ole.CompoundFileWriter();
+        good.AddStream("VBA/dir", new byte[5000]);
+        var bytes = good.ToArray();
+        var rnd = new Random(3);
+        for (int i = 0; i < 300; i++)
+        {
+            var bad = (byte[])bytes.Clone();
+            for (int k = 0; k < 8; k++) bad[rnd.Next(bad.Length)] = (byte)rnd.Next(256);
+            try { var r = new WordCraft.Vba.Ole.CompoundFileReader(bad); if (r.Find("VBA/dir") is { } e && !e.IsStorage) r.Read(e); }
+            catch (WordCraft.Vba.Ole.CompoundFileException) { }
+            catch (Exception e) when (e is ArgumentException or IndexOutOfRangeException or OverflowException) { throw new Exception($"mutation {i}: {e.GetType().Name}: {e.Message}"); }
+        }
+    }
+
+    static string MakeDocm(params VbaModule[] modules)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "wcvba-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var docx = Path.Combine(dir, "plain.docx");
+        // A real .docx: WordCraft's own when testing against it, otherwise a minimal package.
+        if (Probe.Real)
+        {
+            var txt = Path.Combine(dir, "in.txt");
+            File.WriteAllText(txt, "Introduction to Acme  widgets\nSection 1 Overview\nThe Acme team  ships.");
+            System.Diagnostics.Process.Start(Probe.Cli!, ["convert", txt, docx])!.WaitForExit();
+        }
+        else MinimalDocx(docx);
+        var docm = Path.Combine(dir, "macros.docm");
+        WordCraft.Vba.Ole.VbaPackage.MakeMacroEnabled(docx, WordCraft.Vba.Ole.VbaPackage.BuildProject(modules), docm);
+        return docm;
+    }
+
+    static void MinimalDocx(string path)
+    {
+        using var zip = System.IO.Compression.ZipFile.Open(path, System.IO.Compression.ZipArchiveMode.Create);
+        void Put(string name, string xml) { using var w = new StreamWriter(zip.CreateEntry(name).Open()); w.Write(xml); }
+        Put("[Content_Types].xml", """<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>""");
+        Put("_rels/.rels", """<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>""");
+        Put("word/_rels/document.xml.rels", """<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>""");
+        Put("word/document.xml", """<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hi</w:t></w:r></w:p></w:body></w:document>""");
+    }
+
+    public static void Docm_modules_read_back_with_their_kinds()
+    {
+        var docm = MakeDocm(
+            new VbaModule("Cleanup", VbaModuleKind.Standard, Cleanup),
+            new VbaModule("ThisDocument", VbaModuleKind.Document, "Private Sub Document_Open()\r\n    Debug.Print \"opened\"\r\nEnd Sub\r\n"),
+            new VbaModule("Counter", VbaModuleKind.Class, "Public Count As Long\r\nPublic Sub Bump()\r\n    Count = Count + 1\r\nEnd Sub\r\n"));
+        var modules = WordCraft.Vba.Ole.VbaProjectReader.ReadFile(docm);
+        Assert.Equal("Cleanup:Standard ThisDocument:Document Counter:Class", string.Join(" ", modules.Select(m => $"{m.Name}:{m.Kind}")));
+        Assert.True(modules[0].Source.Contains("Selection.Find.Execute Replace:=wdReplaceAll"), "source survives");
+        var compiled = MacroCompiler.Compile(modules);
+        Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics));
+        compiled.Project!.Dispose();
+    }
+
+    public static void Docm_macros_run_on_the_document_and_survive_a_save()
+    {
+        var docm = MakeDocm(new VbaModule("Cleanup", VbaModuleKind.Standard, Cleanup));
+        var modules = WordCraft.Vba.Ole.VbaProjectReader.ReadFile(docm);
+        var (engine, app) = (Probe.Create(), (Application?)null);
+        app = new Application(engine.Engine);
+        if (!Probe.Real) return; // the fake engine can't open a .docx; the reader is covered above
+        app.Documents.Open(docm);
+        using var project = MacroCompiler.Compile(modules).Project!;
+        VbaHost.Output = _ => { };
+        try { project.Run(app, "FixDoubleSpaces"); } finally { VbaHost.Output = Console.WriteLine; }
+        Assert.Equal("Introduction to Acme widgets", engine.Paragraphs[0]);
+        var saved = Path.ChangeExtension(docm, ".saved.docm");
+        app.ActiveDocument.SaveAs2(saved);
+        var again = WordCraft.Vba.Ole.VbaProjectReader.ReadFile(saved);
+        Assert.Equal("Cleanup", again.Single().Name, "WordCraft kept the VBA project when it saved");
     }
 }

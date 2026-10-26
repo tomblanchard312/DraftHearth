@@ -1,17 +1,21 @@
-# Builds and tests the workspace on FreeBSD, inside a FreeBSD VM on a Linux runner
-# (GitHub has no FreeBSD runners). GPU tests skip themselves when the VM has no adapter.
+# Builds and tests on FreeBSD, inside a FreeBSD VM on a Linux runner.
 name: FreeBSD
 
-# The VM build is slow, so it runs nightly on main and on pushes to `release`, not on every pull
-# request: a drifted dependency still shows up within a day, and always before a release ships.
-# PRs that change the FreeBSD workflow or packaging itself still run it.
+# The VM build is slow, so it runs nightly on the default branch and on pushes to `release`.
+# PRs that change the dependency graph, application, or FreeBSD build path run it as well.
 on:
   push:
     branches: [release]
   pull_request:
     paths:
       - .github/workflows/freebsd.yml
-      - packaging/env.sh
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - rust-toolchain
+      - crates/**
+      - apps/**
+      - packaging/llama/**
   schedule:
     - cron: "27 4 * * *"
   workflow_dispatch:
@@ -25,5 +29,26 @@ permissions:
 
 jobs:
   freebsd:
-    # Intentionally tracked at @main (not SHA-pinned) so org-wide CI improvements, security fixes, and build optimizations propagate without PR churn across all craftapp repos.
-    uses: storytold/craft-common-actions/.github/workflows/freebsd.yml@main
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ["14", "15"]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and test in a FreeBSD VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: ${{ matrix.release }}
+          cpu: 4
+          usesh: true
+          copyback: false
+          prepare: |
+            pkg install -y cmake curl llvm libX11 libxkbcommon libXcursor libXi libXrender mesa-libs crosextrafonts-carlito noto-sans-hebrew noto-sans-arabic
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          run: |
+            . "$HOME/.cargo/env"
+            export LIBCLANG_PATH="$(ls -d /usr/local/llvm*/lib | sort -V | tail -n 1)"
+            sh packaging/llama/freebsd-cargo.sh test --workspace
+            sh packaging/llama/freebsd-cargo.sh build --release -p wordcraft -p wordcraft-cli
+            target/release/wordcraft-cli --version

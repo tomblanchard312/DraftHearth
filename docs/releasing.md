@@ -26,6 +26,11 @@ produce unsigned builds with a warning, so forks still build.
 Local packaging: `packaging/macos/package.sh --arch universal`, `packaging/windows/package.ps1`,
 `packaging/linux/package.sh` (then `packaging/linux/flatpak-bundle.sh` for the Flatpak), `packaging/web/package.sh`.
 
+Local FreeBSD builds use `sh packaging/llama/freebsd-cargo.sh build --release -p wordcraft -p wordcraft-cli`
+to apply the local llama.cpp compatibility patch while Cargo runs. The wrapper restores
+`Cargo.lock` after the command; the FreeBSD CI job also runs workspace tests and release builds
+through it. The shared release workflow has not yet been routed through this wrapper.
+
 Dry run: `gh workflow run release.yml --ref <branch>` builds the unsigned jobs (version, Linux,
 Linux riscv64, Flatpak, FreeBSD, web) on any branch; the signing jobs are refused there by the `release`
 environment's branch rule, so no draft release is made.

@@ -1,6 +1,6 @@
 # WordCraft roadmap
 
-> **Upstream integration:** 2026-10-26 · WordCraft `438775ce` (296 incoming commits) reconciled with Nisaba, including egui 0.37 and native document windows. Scribe/VBA retained; four pre-existing font/layout failures keep full CI open. See [integration evidence](docs/upstream-sync.md).
+> **Upstream integration:** 2026-10-26 · WordCraft `438775ce` (296 incoming commits) reconciled with Nisaba, including egui 0.37 and native document windows. Scribe/VBA retained; font/layout test assumptions corrected and all eight CI gates pass. See [integration evidence](docs/upstream-sync.md).
 
 > **Status update:** 2026-10-26 · Scribe uses in-process CPU GGUF inference and verified model downloads; Developer has a VBA project explorer, source editor, document designer, contextual local chat and separate Phi-4 completion. Readiness estimates unchanged.
 
@@ -143,6 +143,8 @@ Ranked, to beta (detail and remaining milestones in [docs/roadmap.md](docs/roadm
    (20–30 h).
 
 ## Progress log
+
+- 2026-10-26: Cleared the four inherited font/layout failures by correcting environment-dependent tests. Thai rendering stays enabled; all eight CI gates pass (4,623 workspace tests). Readiness estimates unchanged.
 
 - 2026-10-26: Integrated upstream `438775ce` with native document windows and egui 0.37; Scribe/VBA pane and buffer regressions pass. Four confirmed pre-existing font/layout failures remain open; readiness estimates unchanged.
 
@@ -660,6 +662,8 @@ Imported Word 97–2003 `.doc`/`.dot` files now ask for a supported DOCX target 
 Footer page-table height and body wrapping are corrected. Other pagination gaps remain open.
 
 ## Revision history
+
+> 2026-10-26: Corrected host-font and pagination fixture assumptions without disabling Thai or adding test skips; all eight CI gates pass. Product parity estimates remain unchanged.
 
 > 2026-10-25 · Added Developer’s VBA source workbench, syntax colors, local Phi-4 completion and live body-node inspection; .bas/.docm source saving supported; GUI macro execution remains open.
 

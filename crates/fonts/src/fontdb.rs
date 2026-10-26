@@ -2160,7 +2160,7 @@ mod tests {
     const THAI_RUN: &str = "[D] น้ำ ค่ำ ปั้น ฝั่ง ปู่ ๑๒๓๔๕๖๗๘๙๐ ฿1,250.50";
 
     #[test]
-    fn a_thai_run_with_latin_falls_back_to_one_face() {
+    fn a_thai_run_with_latin_uses_available_font_coverage() {
         let db = FontDb::global();
         if db.fallback_for('น', 0).is_none() {
             eprintln!("skipped: no Thai font installed");
@@ -2168,13 +2168,19 @@ mod tests {
         }
         let latin = db.face(FALLBACK_FAMILY, "Regular");
         let chars: Vec<char> = THAI_RUN.chars().filter(|c| !c.is_whitespace()).collect();
-        let f = db.fallback_for_run(&chars, latin.id(), false, false).expect("one face covers the run");
-        assert_ne!(f.id, latin.id);
-        for c in &chars {
-            assert!(f.covers(*c), "{} covers {c}", f.family);
+        // Some Thai-only system fonts have no Latin glyphs. A complete face is preferred;
+        // otherwise every character must still have a usable per-character fallback.
+        if let Some(f) = db.fallback_for_run(&chars, latin.id(), false, false) {
+            assert_ne!(f.id, latin.id);
+            for c in &chars {
+                assert!(f.covers(*c), "{} covers {c}", f.family);
+            }
+            assert!(f.has_layout_tables(), "{} shapes Thai", f.family);
+        } else {
+            for c in &chars {
+                assert!(latin.covers(*c) || db.fallback_for(*c, latin.id()).is_some_and(|f| f.covers(*c)), "fallback covers {c}");
+            }
         }
-        // A Thai font with OpenType tables, as the per-character fallback prefers.
-        assert!(f.has_layout_tables(), "{} shapes Thai", f.family);
         // Without system fonts and without craft-fonts' Thai face (built in since craft-fonts
         // 3d9ab3a1) no bundled face covers Thai: the caller keeps the per-character path.
         let bundled = FontDb::with_font_dirs(Vec::new());

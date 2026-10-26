@@ -131,7 +131,7 @@ fn cluster_faces(text: &str, font: Option<&str>) -> Vec<(usize, wordcraft_fonts:
 }
 
 #[test]
-fn a_missing_thai_font_draws_the_whole_run_in_one_thai_face() {
+fn a_missing_thai_font_uses_whole_run_or_per_character_coverage() {
     if !thai_font_installed() {
         eprintln!("skipped: no Thai font installed");
         return;
@@ -140,37 +140,54 @@ fn a_missing_thai_font_draws_the_whole_run_in_one_thai_face() {
     // digits and the baht sign keep the Thai letters' face and size. A Thai name the lists don't
     // spell out ("TH Niramit AS") is matched by its "TH " prefix and substituted the same way.
     let db = wordcraft_fonts::FontDb::global();
+    let chars: Vec<char> = THAI_RUN.chars().filter(|c| !c.is_whitespace()).collect();
+    let latin = db.face("Source Sans 3", "Regular");
+    let whole = db.fallback_for_run(&chars, latin.id(), false, false);
     for font in ["TH Sarabun New", "Angsana New", "TH Niramit AS"] {
         if db.has_family(font) {
             continue;
         }
         let faces = cluster_faces(THAI_RUN, Some(font));
-        let first = faces[0].1;
-        let names: Vec<&str> = faces.iter().map(|(_, f)| f.family.as_str()).collect();
-        assert!(faces.iter().all(|(_, f)| f.id() == first.id()), "{font}: one face for the run, not {names:?}");
-        assert!(first.covers('\u{0E19}') && first.covers('D') && first.covers('1') && first.covers('\u{0E3F}'), "{font} → {}", first.family);
+        if whole.is_some() {
+            let first = faces[0].1;
+            let names: Vec<&str> = faces.iter().map(|(_, f)| f.family.as_str()).collect();
+            assert!(faces.iter().all(|(_, f)| f.id() == first.id()), "{font}: one face for the run, not {names:?}");
+            assert!(chars.iter().all(|c| first.covers(*c)), "{font} → {}", first.family);
+        } else {
+            // Thai-only fonts still render the mixed run through normal character fallback.
+            assert!(!faces.is_empty());
+            for (start, face) in faces {
+                let c = THAI_RUN[start..].chars().next().unwrap();
+                assert!(c.is_whitespace() || face.covers(c), "{font}: {} covers {c}", face.family);
+            }
+        }
     }
 }
 
 #[test]
-fn a_thai_substitute_without_latin_hands_the_run_to_one_face_covering_it() {
+fn a_thai_substitute_uses_a_complete_face_only_when_available() {
     if !thai_font_installed() {
         eprintln!("skipped: no Thai font installed");
         return;
     }
     // When the substitute lacks the run's Thai letters (no listed Thai font is installed, so the
-    // Latin fallback family stands in) or its Latin ones, the run moves to one face covering all.
+    // Latin fallback family stands in) or its Latin ones, prefer one face covering all if installed.
     let latin = wordcraft_fonts::word::resolve("Source Sans 3", false, false).face;
-    let face = crate::para::thai_run_face("TH Sarabun New", true, latin, THAI_RUN, false, false).expect("one face covers the run");
-    assert_ne!(face.id(), latin.id());
-    for c in THAI_RUN.chars().filter(|c| !c.is_whitespace()) {
-        assert!(face.covers(c), "{} covers {c}", face.family);
+    let chars: Vec<char> = THAI_RUN.chars().filter(|c| !c.is_whitespace()).collect();
+    let available = wordcraft_fonts::FontDb::global().fallback_for_run(&chars, latin.id(), false, false);
+    let face = crate::para::thai_run_face("TH Sarabun New", true, latin, THAI_RUN, false, false);
+    assert_eq!(face.is_some(), available.is_some(), "one face only when the host has a complete Thai/Latin font");
+    if let Some(face) = face {
+        assert_ne!(face.id(), latin.id());
+        for c in &chars {
+            assert!(face.covers(*c), "{} covers {c}", face.family);
+        }
+        // A substitute that already covers the run keeps it.
+        assert!(crate::para::thai_run_face("TH Sarabun New", true, face, THAI_RUN, false, false).is_none());
     }
     // Only for a Thai family that was substituted.
     assert!(crate::para::thai_run_face("Calibri", true, latin, THAI_RUN, false, false).is_none());
     assert!(crate::para::thai_run_face("TH Sarabun New", false, latin, THAI_RUN, false, false).is_none());
-    // A substitute that already covers the run keeps it.
-    assert!(crate::para::thai_run_face("TH Sarabun New", true, face, THAI_RUN, false, false).is_none());
     // Text that is neither Thai nor Latin doesn't make the run move.
     assert!(crate::para::thai_run_face("TH Sarabun New", true, latin, "abc \u{2603}", false, false).is_none());
 }

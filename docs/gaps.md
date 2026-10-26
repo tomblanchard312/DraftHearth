@@ -1,6 +1,6 @@
 # Where WordCraft falls short of Word
 
-> **Upstream integration:** 2026-10-26 · WordCraft `438775ce` (296 incoming commits) reconciled with Nisaba, including egui 0.37 and native document windows. Scribe/VBA retained; four pre-existing font/layout failures keep full CI open. See [integration evidence](upstream-sync.md).
+> **Upstream integration:** 2026-10-26 · WordCraft `438775ce` (296 incoming commits) reconciled with Nisaba, including egui 0.37 and native document windows. Scribe/VBA retained; font/layout test assumptions corrected and all eight CI gates pass. See [integration evidence](upstream-sync.md).
 
 > **Status update:** 2026-10-26 · Scribe uses in-process CPU GGUF inference and verified model downloads; Developer has a VBA project explorer, source editor, document designer, contextual local chat and separate Phi-4 completion. Readiness estimates unchanged.
 
@@ -145,6 +145,8 @@ Small follow-ups from the 2026-10-25 field, table and AutoFormat batch (#4232):
 - The ribbon's Accept and Reject buttons only open their menus; Word's main half runs Accept (Reject) and Move to Next. The ribbon needs a big split button (Paste needs one too) (#4205).
 
 ## Revision history
+
+> 2026-10-26: Corrected host-font and pagination fixture assumptions without disabling Thai or adding test skips; all eight CI gates pass. Product parity estimates remain unchanged.
 
 > 2026-10-26: Upstream integration retained Nisaba panes, local inference and VBA across native windows; validation and the four pre-existing failures are recorded in [upstream-sync.md](upstream-sync.md).
 

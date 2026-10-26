@@ -2562,6 +2562,25 @@ fn clamped_scroll(before: egui::Vec2, delta: egui::Vec2, max: egui::Vec2) -> egu
 }
 
 fn mouse(app: &mut WordApp, ui: &Ui, resp: &egui::Response, rects: &[Rect], layout: &DocLayout, scale: f32) {
+    if let Some(control) = egui::DragAndDrop::payload::<crate::vba_editor::FormControlDrag>(ui.ctx()) {
+        let target = ui
+            .input(|i| i.pointer.latest_pos())
+            .filter(|p| app.canvas.viewport.is_some_and(|viewport| viewport.contains(*p)) && rects.iter().any(|rect| rect.contains(*p)))
+            .and_then(|p| page_at(rects, layout, scale, p).and_then(|(page, x, y)| layout.hit(page, x, y, StoryRef::Body)).map(|pos| (p, pos)));
+        if let Some((point, _)) = &target {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
+            ui.painter().circle_stroke(*point, 6.0, Stroke::new(2.0, Tokens::get(ui.ctx()).blue));
+        }
+        if ui.input(|i| i.pointer.any_released()) {
+            egui::DragAndDrop::take_payload::<crate::vba_editor::FormControlDrag>(ui.ctx());
+            if let Some((_, pos)) = target
+                && let Err(error) = crate::vba_editor::insert_form_control(app, &control, &pos)
+            {
+                app.session.status = error;
+            }
+        }
+        return;
+    }
     // A pen or the eraser (Draw tab) owns the pointer.
     if crate::ink::pointer(app, ui, resp, rects, layout, scale) {
         return;
@@ -3741,6 +3760,45 @@ fn is_followable_link(url: &str) -> bool {
 mod tests {
     use super::*;
     use crate::table_resize::tests::{H, cell, screen, steps, table_window};
+
+    #[test]
+    fn dragging_a_toolbox_control_onto_the_page_inserts_and_undoes_it() {
+        use egui_kittest::kittest::Queryable as _;
+        let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Form fields go here")), Default::default());
+        app.run("vba.editor", json!({"value":true})).unwrap();
+        app.run("ui.vba.workspace", json!({"tab":"designer"})).unwrap();
+        let mut h: H = egui_kittest::Harness::builder().with_size(vec2(1440.0, 1000.0)).build_ui_state(
+            |ui, app: &mut WordApp| {
+                let ctx = ui.ctx().clone();
+                app.logic(&ctx);
+                app.ui(ui);
+            },
+            app,
+        );
+        h.run_steps(6);
+        let start = h.get_by_label("Text field").rect().center();
+        let body = h.state_mut().session.layout().pages[0].body;
+        let end = screen(&mut h, body.x + 20.0, body.y + 8.0);
+        let undo = h.state().session.undo_depth();
+        h.event(egui::Event::PointerMoved(start));
+        h.run_steps(2);
+        h.event(egui::Event::PointerButton { pos: start, button: egui::PointerButton::Primary, pressed: true, modifiers: Default::default() });
+        h.step();
+        h.event(egui::Event::PointerMoved(start + vec2(-12.0, 0.0)));
+        h.step();
+        h.event(egui::Event::PointerMoved(end));
+        h.step();
+        h.event(egui::Event::PointerButton { pos: end, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() });
+        h.run_steps(3);
+        assert_eq!(h.state().session.doc.fillable_controls(), 1, "drop creates one form control");
+        assert_eq!(h.state().session.undo_depth(), undo + 1);
+        for name in ["form.docx", "form.docm"] {
+            let bytes = wordcraft_engine::io::save_bytes(name, &h.state().session.doc).unwrap();
+            assert_eq!(wordcraft_engine::io::open_bytes(name, &bytes).unwrap().fillable_controls(), 1, "form control survives {name} save/reopen");
+        }
+        h.state_mut().run("edit.undo", json!({})).unwrap();
+        assert_eq!(h.state().session.doc.fillable_controls(), 0);
+    }
 
     /// #3931: while Insert › Table's grid asks for a preview the page is laid out with that
     /// table; the document, its revision and undo history stay as they were, and without a

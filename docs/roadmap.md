@@ -1,12 +1,16 @@
 # WordCraft roadmap: milestones and what's next
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-18 · **Change:** trivial (M6: Manage Sources imports Word's `Sources.xml`, #2640; previously minor: Czech proofing review fixes; previously minor: Portuguese proofing; previously minor: Polish interface and Polish proofing; previously trivial: M7: formatting revisions landed, #41; previously trivial: M5: Draw Table and Eraser landed, #303; previously minor: beta distance restated: ~15 points, ~150–230 h; previously: alpha gate checked: six core workflows pass; previously major: milestones moved here from ROADMAP.md; Current focus set from the re-measured gaps) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Compatibility focus:** 2026-10-25 · Clean-room `.docx` and `.docm` interoperability; Python deferred. Synthetic coverage does not establish full Word parity.
+
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-25 · **Change:** trivial (M6: Manage Sources imports Word's `Sources.xml`, #2640; previously minor: Czech proofing review fixes; previously minor: Portuguese proofing; previously minor: Polish interface and Polish proofing; previously trivial: M7: formatting revisions landed, #41; previously trivial: M5: Draw Table and Eraser landed, #303; previously minor: beta distance restated: ~15 points, ~150–230 h; previously: alpha gate checked: six core workflows pass; previously major: milestones moved here from ROADMAP.md; Current focus set from the re-measured gaps) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
 Forward-looking plan. The summary is [`ROADMAP.md`](../ROADMAP.md); the ranked work list is
 [`gaps.md`](gaps.md); the numbers are in [`target-app-parity.md`](target-app-parity.md). Hours are
 Opus 5.5 agent wall-clock.
 
 ## Current focus (toward beta, ~150–230 h)
+
+**Owner priority, 2026-10-26:** VBA is acceptable at its current checkpoint. Focus on Scribe writing quality and reliability. The first pass guards stale/incomplete suggestions, refuses oversized selections, improves caret continuation and validates grammar/shortening/review with real local inference. Broader writing-quality evaluation and document-wide conversation remain open.
 
 1. **Merge or close the ~45 open PRs** before starting overlapping work: many close catalog gaps
    (Clipboard pane #264, Manage Styles #270, Group #267), fix field bugs (Hebrew RTL #20, IME
@@ -24,6 +28,29 @@ Opus 5.5 agent wall-clock.
    options, a local page-by-page comparison harness; an owner decision on an Aptos-metric font.
 6. **Formatting revisions and content controls** (gap #5, 12–18 h), **native printing** (gap #6,
    6–10 h), **dialog depth** (gap #7, 20–30 h).
+
+## DOCX/DOCM compatibility focus
+
+Prioritize the existing Word formats. Python scripting and a new document/script container are
+deferred. Implement from public specifications and documented APIs with original code and
+synthetic fixtures; follow the repository's clean-room and asset rules.
+
+Acceptance is tracked separately for:
+
+- **Document fidelity:** text, styles, tables, fields, drawings, review data and layout survive
+  open/edit/save/reopen in both formats. Real-world corpus and native Word comparisons remain open.
+- **Macro preservation:** ordinary document edits preserve the VBA project and its related parts;
+  source edits preserve untouched modules, references and designers. `.docx` exports remain macro-free.
+- **Macro behavior:** expand the existing VBA transpiler and document-object facade against
+  original behavior tests; unsupported APIs must report errors. GUI execution, runtime isolation,
+  forms/events and debugging remain open, with no automatic macro execution on document open.
+- **Word acceptance:** native Word opens saved files without repair and executes representative
+  original macros correctly. Synthetic round trips alone cannot close this gate.
+
+Current regression coverage includes three successive Unicode document edits and DOCM saves
+preserving opaque project/data/signature bytes, plus repeated macro-free DOCX saves that do not
+mutate the open DOCM. Source-edit preservation is covered separately by the VBA component tests.
+Readiness estimates remain unchanged.
 
 ## Alpha gate (core workflows)
 
@@ -74,6 +101,7 @@ languages, screen-reader access, ecosystem decisions (VBA, add-ins, cloud), an i
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-25 | minor | Prioritized clean-room DOCX/DOCM compatibility and explicit acceptance gates; deferred Python and any new script container |
 | 2026-10-18 | trivial | M6: Manage Sources imports Word's `Sources.xml` (#2640) |
 | 2026-10-12 | minor | Czech proofing review: short-word splits rank after deletion, NOSUGGEST excludes suggestions while accepting typed forms, affix comments apply only to headers, ratios keep spaces and repeated-word messages use Czech quotes; synthetic engine end-to-end and latency checks |
 | 2026-10-12 | minor | Czech spelling from the installed Hunspell dictionary, runtime-table suggestions and generic checks; Czech interface writes cs-CZ documents; no Czech hyphenation patterns bundled; estimates unchanged |

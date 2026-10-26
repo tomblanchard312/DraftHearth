@@ -65,6 +65,71 @@ fn save(doc: &wordcraft_doc::Document) -> BTreeMap<String, Vec<u8>> {
     unzip(&wordcraft_docx::write(doc).expect("write"))
 }
 
+// Original synthetic payloads: this checks opaque preservation, not VBA execution.
+fn macro_document_fixture() -> Vec<u8> {
+    let mut entries = unzip(&package(
+        "<w:p><w:r><w:t>Original document</w:t></w:r></w:p>",
+        &[("vba", "http://schemas.microsoft.com/office/2006/relationships/vbaProject", "vbaProject.bin")],
+        &[],
+        &[],
+    ));
+    entries.insert("word/vbaProject.bin".into(), b"synthetic opaque project\0\xff".to_vec());
+    entries.insert("word/vbaData.xml".into(), b"<syntheticData/>".to_vec());
+    entries.insert("word/vbaProjectSignature.bin".into(), b"synthetic opaque signature\0\xfe".to_vec());
+    entries.insert(
+        "word/_rels/vbaProject.bin.rels".into(),
+        rels(&[
+            ("data", "http://schemas.microsoft.com/office/2006/relationships/wordVbaData", "vbaData.xml"),
+            ("signature", "http://schemas.microsoft.com/office/2006/relationships/vbaProjectSignature", "vbaProjectSignature.bin"),
+        ]),
+    );
+    entries.insert("[Content_Types].xml".into(), br#"<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.ms-word.document.macroEnabled.main+xml"/><Override PartName="/word/vbaProject.bin" ContentType="application/vnd.ms-office.vbaProject"/><Override PartName="/word/vbaData.xml" ContentType="application/vnd.ms-word.vbaData+xml"/><Override PartName="/word/vbaProjectSignature.bin" ContentType="application/vnd.ms-office.vbaProjectSignature"/></Types>"#.to_vec());
+    zip(&entries.iter().map(|(name, bytes)| (name.as_str(), bytes.clone())).collect::<Vec<_>>())
+}
+
+#[test]
+fn docm_repeated_document_edits_preserve_opaque_vba_and_related_parts() {
+    let original = unzip(&macro_document_fixture());
+    let mut doc = wordcraft_docx::read(&macro_document_fixture()).unwrap();
+    let mut expected = "Original document".to_string();
+    for cycle in 1..=3 {
+        let added = format!("Édit {cycle} — ");
+        doc.insert_text(&wordcraft_doc::Pos::body(0, 0), &added, &Default::default()).unwrap();
+        expected.insert_str(0, &added);
+        doc.core.title = format!("Edited title {cycle}");
+        let bytes = wordcraft_docx::write_as(&doc, wordcraft_docx::Flavor::MacroDocument).unwrap();
+        let files = unzip(&bytes);
+        for name in ["word/vbaProject.bin", "word/vbaData.xml", "word/vbaProjectSignature.bin"] {
+            assert_eq!(files.get(name), original.get(name), "cycle {cycle}: {name}");
+        }
+        assert!(text(&files, "[Content_Types].xml").contains("application/vnd.ms-word.document.macroEnabled.main+xml"));
+        let related = text(&files, "word/_rels/vbaProject.bin.rels");
+        assert!(related.contains("vbaData.xml") && related.contains("vbaProjectSignature.bin"));
+        doc = wordcraft_docx::read(&bytes).unwrap();
+        assert_eq!(doc.core.title, format!("Edited title {cycle}"));
+        assert_eq!(doc.plain_text(wordcraft_doc::StoryRef::Body).trim(), expected);
+    }
+}
+
+#[test]
+fn docx_export_is_macro_free_without_mutating_the_open_docm() {
+    let doc = wordcraft_docx::read(&macro_document_fixture()).unwrap();
+    let mut exported = wordcraft_docx::write_as(&doc, wordcraft_docx::Flavor::Document).unwrap();
+    for _ in 0..3 {
+        let files = unzip(&exported);
+        assert!(!files.keys().any(|name| name.contains("vbaProject") || name.contains("vbaData")));
+        assert!(!text(&files, "word/_rels/document.xml.rels").contains("vbaProject"));
+        let types = text(&files, "[Content_Types].xml");
+        assert!(!types.contains("macroEnabled") && !types.contains("vbaProject") && !types.contains("vbaData"));
+        let reopened = wordcraft_docx::read(&exported).unwrap();
+        assert_eq!(reopened.plain_text(wordcraft_doc::StoryRef::Body).trim(), "Original document");
+        assert!(!reopened.passthrough.contains_key("word/vbaProject.bin"));
+        exported = wordcraft_docx::write_as(&reopened, wordcraft_docx::Flavor::Document).unwrap();
+    }
+    let macro_copy = unzip(&wordcraft_docx::write_as(&doc, wordcraft_docx::Flavor::MacroDocument).unwrap());
+    assert_eq!(macro_copy.get("word/vbaProject.bin"), unzip(&macro_document_fixture()).get("word/vbaProject.bin"));
+}
+
 const SETTINGS: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" mc:Ignorable="w14 w15"><w:zoom w:percent="120"/><w:removePersonalInformation/><w:removeDateAndTime/><w:proofState w:spelling="clean" w:grammar="clean"/><w:mailMerge><w:mainDocumentType w:val="formLetters"/><w:dataSource r:id="rId9"/></w:mailMerge><w:trackRevisions/><w:defaultTabStop w:val="708"/><w:hyphenationZone w:val="425"/><w:characterSpacingControl w:val="doNotCompress"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/><w:compatSetting w:name="overrideTableStyleFontSizeAndJustification" w:uri="http://schemas.microsoft.com/office/word" w:val="1"/><w:compatSetting w:name="enableOpenTypeFeatures" w:uri="http://schemas.microsoft.com/office/word" w:val="1"/></w:compat><w:docVars><w:docVar w:name="ClauseSet" w:val="B"/></w:docVars><w:rsids><w:rsidRoot w:val="00A1B2C3"/><w:rsid w:val="00A1B2C3"/></w:rsids><m:mathPr><m:mathFont m:val="Cambria Math"/><m:smallFrac m:val="0"/></m:mathPr><w:themeFontLang w:val="pl-PL"/><w:decimalSymbol w:val=","/><w:listSeparator w:val=";"/><w14:docId w14:val="1A2B3C4D"/></w:settings>"#;
 

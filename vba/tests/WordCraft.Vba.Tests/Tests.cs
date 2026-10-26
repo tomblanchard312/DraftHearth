@@ -7,8 +7,8 @@ using WordCraft.Vba.Testing;
 
 // A dependency-free test runner (the build has no NuGet access): every public static void
 // method on Tests is a test.
-int passed = 0, failed = 0;
-foreach (var m in new[] { typeof(Tests), typeof(DocmTests) }.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static)).Where(m => m.ReturnType == typeof(void)))
+int passed = 0, failed = 0, skipped = 0;
+foreach (var m in new[] { typeof(Tests), typeof(DocmTests), typeof(ProjectEditorTests), typeof(ContentControlTests) }.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static)).Where(m => m.ReturnType == typeof(void)))
 {
     if (args.Length > 0 && !args.Any(a => m.Name.Contains(a, StringComparison.OrdinalIgnoreCase))) continue;
     try
@@ -16,6 +16,11 @@ foreach (var m in new[] { typeof(Tests), typeof(DocmTests) }.SelectMany(t => t.G
         m.Invoke(null, null);
         passed++;
         Console.WriteLine($"  ok   {m.Name}");
+    }
+    catch (TargetInvocationException e) when (e.InnerException is TestSkippedException)
+    {
+        skipped++;
+        Console.WriteLine($"  skip {m.Name}: {e.InnerException.Message}");
     }
     catch (TargetInvocationException e)
     {
@@ -25,8 +30,10 @@ foreach (var m in new[] { typeof(Tests), typeof(DocmTests) }.SelectMany(t => t.G
     finally { Probe.DisposeAll(); }
 }
 Console.WriteLine(Probe.Real ? $"engine: WordCraft ({Probe.Cli})" : "engine: FakeEngine");
-Console.WriteLine($"{passed} passed, {failed} failed");
+Console.WriteLine($"{passed} passed, {failed} failed, {skipped} skipped");
 return failed == 0 ? 0 : 1;
+
+sealed class TestSkippedException(string message) : Exception(message);
 
 static class Assert
 {
@@ -150,6 +157,8 @@ static class Tests
         Assert.Equal("Foo(a, b)", Transpiler.FixCall("Foo a, b"));
         Assert.Equal("x = 5", Transpiler.FixCall("x = 5"));
         Assert.Equal("obj.Item(1) = 3", Transpiler.FixCall("obj.Item(1) = 3"));
+        Assert.Equal("ActiveDocument.SelectContentControlsByTag(\"approved\")(1).Checked = True",
+            Transpiler.FixCall("ActiveDocument.SelectContentControlsByTag(\"approved\")(1).Checked = True"));
         Assert.Equal("Foo (x)", Transpiler.FixCall("Foo (x)"));
         Assert.Equal("Foo((a), b)", Transpiler.FixCall("Foo (a), b"));
         Assert.Equal(".Execute(Replace:=wdReplaceAll)", Transpiler.FixCall(".Execute Replace:=wdReplaceAll"));
@@ -588,13 +597,29 @@ static class DocmTests
         app = new Application(engine.Engine);
         if (!Probe.Real) return; // the fake engine can't open a .docx; the reader is covered above
         app.Documents.Open(docm);
-        using var project = MacroCompiler.Compile(modules).Project!;
+        var compiled = MacroCompiler.Compile(modules);
+        Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics));
+        using var project = compiled.Project!;
         VbaHost.Output = _ => { };
-        try { project.Run(app, "FixDoubleSpaces"); } finally { VbaHost.Output = Console.WriteLine; }
+        try { project.Run(app, "Main"); } finally { VbaHost.Output = Console.WriteLine; }
         Assert.Equal("Introduction to Acme widgets", engine.Paragraphs[0]);
+        Assert.Equal("Heading1", engine.StyleOf(1));
+        Assert.True(engine.CharProps(0, 16)["bold"]?.GetValue<bool>() == true, "macro formatted Acme");
+        Assert.Equal("Tom, Engineer", engine.Paragraphs[^1]);
         var saved = Path.ChangeExtension(docm, ".saved.docm");
         app.ActiveDocument.SaveAs2(saved);
         var again = WordCraft.Vba.Ole.VbaProjectReader.ReadFile(saved);
         Assert.Equal("Cleanup", again.Single().Name, "WordCraft kept the VBA project when it saved");
+        Assert.Equal(modules.Single().Source, again.Single().Source, "source survives macro execution and save");
+        app.Documents.Open(saved);
+        Assert.Equal("Introduction to Acme widgets", engine.Paragraphs[0]);
+        Assert.Equal("Heading1", engine.StyleOf(1));
+        Assert.True(engine.CharProps(0, 16)["bold"]?.GetValue<bool>() == true, "bold survives reopen");
+        Assert.Equal("Tom, Engineer", engine.Paragraphs[^1]);
+        var recompiled = MacroCompiler.Compile(again);
+        Assert.True(recompiled.Success, string.Join("; ", recompiled.Diagnostics));
+        using var reopened = recompiled.Project!;
+        reopened.Run(app, "FixDoubleSpaces");
+        Assert.Equal("Introduction to Acme widgets", engine.Paragraphs[0], "saved embedded source runs again");
     }
 }

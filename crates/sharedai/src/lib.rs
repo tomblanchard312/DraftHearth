@@ -11,6 +11,11 @@
 //! [`Error::Unsupported`].
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+/// In-process GGUF inference used by the desktop assistant.
+pub mod local;
+/// Pinned assistant models and verified downloads.
+pub mod models;
+
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};

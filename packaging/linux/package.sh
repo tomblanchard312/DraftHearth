@@ -9,9 +9,7 @@
 #
 # Usage: packaging/linux/package.sh [--skip-build] [--formats "appimage deb rpm tar"]
 #
-# SHAREDAI_BIN_DIR: a folder with sharedai-daemon and sharedai-worker (a SharedAI release build).
-# When set, they ship in usr/lib/nisaba/, where Nisaba starts the daemon for its writing
-# assistant. Without them the assistant works only with a SharedAI installed separately.
+# The writing assistant uses the built-in CPU inference runtime; model files are user supplied.
 #
 # Needs: cargo; nfpm for deb/rpm (https://nfpm.goreleaser.com); appimagetool for the AppImage
 # (downloaded into $CARGO_TARGET_DIR if missing). Build on an old distro (CI: Ubuntu 22.04,
@@ -62,13 +60,6 @@ rm -rf "$WORK"
 install -Dm755 "$BIN/wordcraft" "$STAGE/usr/bin/nisaba"
 install -Dm755 "$BIN/wordcraft-cli" "$STAGE/usr/bin/nisaba-cli"
 "${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/nisaba" "$STAGE/usr/bin/nisaba-cli" 2>/dev/null || true
-if [[ -n "${SHAREDAI_BIN_DIR:-}" ]]; then
-  for b in sharedai-daemon sharedai-worker; do
-    [[ -x "$SHAREDAI_BIN_DIR/$b" ]] || { echo "error: $SHAREDAI_BIN_DIR/$b not found" >&2; exit 1; }
-    install -Dm755 "$SHAREDAI_BIN_DIR/$b" "$STAGE/usr/lib/nisaba/$b"
-  done
-  "${CROSS_COMPILE:-}strip" "$STAGE/usr/lib/nisaba/"sharedai-* 2>/dev/null || true
-fi
 install -Dm644 "$HERE/$APP_ID.desktop" "$STAGE/usr/share/applications/$APP_ID.desktop"
 install -Dm644 "$HERE/$APP_ID.mime.xml" "$STAGE/usr/share/mime/packages/$APP_ID.xml"
 mkdir -p "$STAGE/usr/share/metainfo"
@@ -103,10 +94,6 @@ if has deb || has rpm; then
   export NFPM_ARCH="$DEB_ARCH"
   # nfpm expands env vars in fields like `version` and `arch`, but not in `contents[].src`.
   sed "s|\${STAGE}|$STAGE|g" "$HERE/nfpm.yaml" >"$WORK/nfpm.yaml"
-  if [[ -d "$STAGE/usr/lib/nisaba" ]]; then
-    # The assistant's local model service (SHAREDAI_BIN_DIR); a `contents` entry only when shipped.
-    sed -i "s|^contents:|contents:\n  - src: $STAGE/usr/lib/nisaba/\n    dst: /usr/lib/nisaba/\n    type: tree|" "$WORK/nfpm.yaml"
-  fi
   for fmt in deb rpm; do
     if has "$fmt"; then (cd "$ROOT" && nfpm package -f "$WORK/nfpm.yaml" -p "$fmt" -t "$DIST/$BASENAME.$fmt"); fi
   done

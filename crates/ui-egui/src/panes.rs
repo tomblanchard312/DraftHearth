@@ -64,6 +64,13 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
             .frame(egui::Frame::NONE.fill(t.panel).inner_margin(10).stroke(Stroke::new(1.0, t.border)))
             .show(ui, |ui| crate::a11y_pane::accessibility(app, ui));
     }
+    if app.session.view.vba_editor {
+        egui::Panel::right("vba_editor")
+            .default_size(820.0)
+            .resizable(true)
+            .frame(egui::Frame::NONE.fill(t.panel).inner_margin(10).stroke(Stroke::new(1.0, t.border)))
+            .show(ui, |ui| crate::vba_editor::pane(app, ui));
+    }
     if app.session.view.assistant_pane {
         egui::Panel::right("assistant_pane")
             .default_size(300.0)

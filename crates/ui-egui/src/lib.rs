@@ -84,6 +84,7 @@ pub mod table_pen;
 pub mod table_resize;
 pub mod table_ruler;
 pub mod theme;
+pub mod vba_editor;
 pub mod widgets;
 pub mod window_close;
 pub mod window_geometry;
@@ -553,6 +554,7 @@ pub struct WordApp {
     pub restrict: dialogs_review::RestrictPane,
     /// Review › Assistant: the SharedAI request in flight and its reply.
     pub assistant: assistant_pane::State,
+    pub vba: vba_editor::State,
     pub status_msg: Option<(String, f64)>,
     pub previews: previews::Previews,
     /// Media key of the picture a pending Change Picture replaces (#147).
@@ -718,6 +720,7 @@ impl WordApp {
             colors: None,
             restrict: Default::default(),
             assistant: Default::default(),
+            vba: Default::default(),
             status_msg: None,
             previews: previews::Previews::default(),
             integrated_titlebar: false,
@@ -1016,6 +1019,18 @@ impl WordApp {
         }
         if let Some(r) = table_pen::toggle(self, id, &params) {
             return r;
+        }
+        if let Some(result) = vba_editor::command(self, id, &params) {
+            return result;
+        }
+        if let Some(result) = assistant_pane::command(self, id, &params) {
+            return result;
+        }
+        if id == "ui.assistant.downloadModel" {
+            return match params.get("model").and_then(Value::as_str) {
+                Some(model) => assistant_pane::download_model(self, model),
+                None => Err("model: the catalog model id".to_string()),
+            };
         }
         if id == "ui.assistant.addModel" {
             let r = match params.get("path").and_then(Value::as_str) {
@@ -1394,6 +1409,11 @@ impl WordApp {
     /// The window's close button (or the system) asked to quit. Returns true to let the window
     /// close; with unsaved changes it asks first and returns false.
     pub fn close_requested(&mut self) -> bool {
+        if self.vba.unsaved() {
+            self.session.view.vba_editor = true;
+            self.status(tl!("Save or revert unsaved VBA modules before closing."));
+            return false;
+        }
         if self.printing.busy() {
             self.status(tl!("Wait for the print job to finish submitting before closing."));
             return false;
@@ -2385,7 +2405,7 @@ impl WordApp {
     /// Tell the host whether the document has unsaved changes ([`Services::on_dirty`]).
     fn report_dirty(&self) {
         if let Some(f) = &self.services.on_dirty {
-            f(self.session.dirty || panes::has_comment_drafts(self));
+            f(self.session.dirty || self.vba.unsaved() || panes::has_comment_drafts(self));
         }
     }
 

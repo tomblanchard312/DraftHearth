@@ -1,5 +1,7 @@
 # WordCraft roadmap
 
+> **Status update:** 2026-10-26 · Scribe uses in-process CPU GGUF inference and verified model downloads; Developer has a VBA project explorer, source editor, document designer, contextual local chat and separate Phi-4 completion. Readiness estimates unchanged.
+
 > **Highlight update:** 2026-10-25 · Highlight shortcut toggles the last chosen colour off when the whole selection has it; explicit colour commands remain setters (#4085). Readiness estimates unchanged.
 
 **Stage: alpha** · next: beta, ~15 points (60% → 75% ready for real work) and ~150–230 h away
@@ -137,6 +139,22 @@ Ranked, to beta (detail and remaining milestones in [docs/roadmap.md](docs/roadm
    (20–30 h).
 
 ## Progress log
+
+- 2026-10-26: Owner accepted the current VBA checkpoint; Scribe is the priority. Guarded stale and incomplete suggestions, refused oversized selections, added concise caret continuation and grouped model setup in Settings. Real grammar, shortening and tracked-change review checks passed; broader writing-quality evaluation remains open. Readiness estimates unchanged.
+
+- 2026-10-26: VBA now reads and edits existing body form controls through ContentControls and title/tag selectors, with ID/document guards. Embedded DOCM execution and save/reopen validated; control events and GUI execution remain open. Readiness estimates unchanged.
+
+- 2026-10-26: Real local chat/completion tests inserted, compiled and executed generated VBA with exact saved-text assertions. Chat context now separates document text from module metadata; readiness estimates unchanged.
+
+- 2026-10-25: Designer exposes the existing form controls toolbox with drag/drop page insertion, Design Mode and control properties; a pointer-drag regression covers undo and DOCX/DOCM preservation.
+
+- 2026-10-25: VBA workspace adds grouped module/source navigation, a live document designer/toolbox and local document-aware chat with reviewed code insertion. Phi-4 remains the Code completion action; UserForm design and GUI execution remain open.
+
+- 2026-10-25: Prioritized clean-room `.docx`/`.docm` compatibility; Python deferred. Added synthetic repeated-save checks for Unicode document edits, opaque VBA-related parts, and macro-free `.docx` exports. Native Word acceptance remains open.
+
+- 2026-10-25: Developer › Code Editor opens VBA source beside the document, with module editing/export, syntax colors, local Phi-4 completion and live paragraph selection/formatting. .bas/.docm source saving supported; GUI macro execution remains open.
+
+- 2026-10-25: Scribe runs GGUF models directly in Nisaba on the CPU, with local model selection and streamed suggestions applied as tracked changes.
 
 - 2026-10-25: Text Highlight Color shows the last colour as the button's bar in the ribbon and mini toolbar; after No Color it shows the pen without a misleading yellow bar, and the button removes highlighting (#4087).
 - 2026-10-23: cu20we: DrawingML flat, square and round line caps are imported, saved, displayed and exported to PDF; absent or unknown caps default to flat. VML end caps (including shapetype inheritance) are preserved through DOCX save. Ink and metafile stroke handling remain separate. Synthetic DOCX, raster and PDF regressions cover the change; no new native Word comparison.
@@ -621,6 +639,10 @@ Imported Word 97–2003 `.doc`/`.dot` files now ask for a supported DOCX target 
 Footer page-table height and body wrapping are corrected. Other pagination gaps remain open.
 
 ## Revision history
+
+> 2026-10-25 · Added Developer’s VBA source workbench, syntax colors, local Phi-4 completion and live body-node inspection; .bas/.docm source saving supported; GUI macro execution remains open.
+
+> 2026-10-25 · Scribe: replaced the daemon requirement with in-process CPU inference; local model selection, streaming, cancellation and tracked changes retained.
 
 > 2026-10-23 · cu20we review follow-up: Only paragraph-relative box floats use the pre-spacing origin. Line-relative floats and page/margin fallbacks in cells and text boxes keep the text-top origin. Synthetic controls compare zero and 24 pt space-before across all four box contexts. New cap conversion helpers and regression tests document their contracts; readiness estimates unchanged.
 

@@ -49,6 +49,7 @@ pub fn open_filters(purpose: &str) -> &'static [(&'static str, &'static [&'stati
         "picture" => &[("Pictures", PICTURES)],
         "font" => &[("Fonts", wordcraft_fonts::FONT_FILE_EXTS)],
         "sources" => &[("Word sources", &["xml"]), ("All files", &["*"])],
+        "vba" => &[("VBA modules", &["bas", "cls"]), ("All files", &["*"])],
         "model" => &[("Language models (GGUF)", &["gguf"]), ("All files", &["*"])],
         "recipients" => &[("Recipient lists", wordcraft_engine::cmd::mailings::RECIPIENT_EXTENSIONS), ("All files", &["*"])],
         _ => &[("Documents", DOCUMENTS), ("Word document", &["docx"]), ("All files", &["*"])],
@@ -62,11 +63,18 @@ pub(crate) enum AfterPick {
     /// Insert the picked picture, or replace the pending Change Picture target.
     Picture,
     /// Save the document there, then carry on.
-    SaveAs { after: AfterSave, document: u64 },
+    SaveAs {
+        after: AfterSave,
+        document: u64,
+    },
     /// Save a copy there in this format (`pdf`, `docx`, `png`…).
-    Export { ext: String },
+    Export {
+        ext: String,
+    },
     /// Write the PDF of these print settings there (File › Print › Save these pages as PDF).
-    PrintPdf { settings: Value },
+    PrintPdf {
+        settings: Value,
+    },
     /// Load the picked CSV/TSV/text file or spreadsheet as the mail-merge recipients (#240, #334).
     Recipients,
     /// Add every picked font file (#582, #1789).
@@ -79,9 +87,18 @@ pub(crate) enum AfterPick {
     /// Organizer (#377).
     ForDialog,
     /// Put the picked document into the Compare dialog (original or revised, #412).
-    ComparePath { revised: bool },
+    ComparePath {
+        revised: bool,
+    },
     /// Add the picked GGUF file as the writing assistant's model.
     AssistantModel,
+    VbaOpen,
+    VbaDocument {
+        document: u64,
+    },
+    VbaSave {
+        module: usize,
+    },
 }
 
 /// What to do once Save As has written the document.
@@ -287,6 +304,21 @@ impl WordApp {
             AfterPick::Recipients => {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
                 self.load_recipients(json!({"path": path}))
+            }
+            AfterPick::VbaOpen => {
+                let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
+                self.run("ui.vba.import", json!({"path": path}))
+            }
+            AfterPick::VbaDocument { document } => {
+                let Some(path) = picked else { return Ok(json!({"cancelled":true})) };
+                if document != self.session.document_id() {
+                    return Err("The document changed while choosing the save path.".into());
+                }
+                self.run("ui.vba.saveDocument", json!({"path":path}))
+            }
+            AfterPick::VbaSave { module } => {
+                let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
+                self.run("ui.vba.save", json!({"path": path, "module": module}))
             }
             AfterPick::AssistantModel => {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };

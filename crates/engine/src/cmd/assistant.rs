@@ -1,7 +1,7 @@
 //! Nisaba's writing assistant ([`wordcraft_brand::ASSISTANT_NAME`]): put a model's suggestion
 //! into the document as tracked changes.
 //!
-//! The model runs elsewhere (a local SharedAI daemon, driven by the pane in the UI; users only
+//! The model runs locally in the UI process (driven by the assistant pane; users only
 //! see the assistant's name); the engine only applies the result, so scripts, the CLI and MCP
 //! agents get the same behaviour.
 //! Suggestions always land as revisions by a separate author, so the writer reviews them with
@@ -31,7 +31,7 @@ pub fn specs() -> Vec<CommandSpec> {
         .params(r#"{"value"?: bool}"#)
         .pure(),
         CommandSpec::new("assistant.settings", concat!(wordcraft_brand::assistant_name!(), " Settings"), LOCATION, settings)
-            .params(r#"{"socket"?: string (model service socket for scripts and packagers; "" for the default), "model"?: string (model id; "" for the first registered)}"#)
+            .params(r#"{"socket"?: string (legacy setting, ignored by local inference), "model"?: string (GGUF file path; "" for the first available)}"#)
             .pure(),
         CommandSpec::new("assistant.apply", "Apply Suggestion", LOCATION, apply).params(
             r#"{"text": string (plain text; blank lines become paragraphs), "mode"?: "replace" (the selection, default) | "after" (inserted after the selection)}"#,
@@ -39,8 +39,7 @@ pub fn specs() -> Vec<CommandSpec> {
     ]
 }
 
-/// The model service socket and model the assistant uses (saved with the other preferences).
-/// The socket is never shown in the interface; it is for scripts and packagers.
+/// The local model path and legacy socket setting (retained for saved-preference compatibility).
 fn settings(s: &mut Session, v: &Value) -> CmdResult {
     let clean = |t: &str| t.trim().chars().filter(|c| !c.is_control()).take(1024).collect::<String>();
     if let Some(t) = p::str(v, "socket") {

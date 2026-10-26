@@ -49,6 +49,7 @@ pub mod templates;
 pub mod text;
 pub mod tools;
 pub mod user_templates;
+pub mod vba;
 pub mod view;
 pub mod wordart;
 
@@ -84,6 +85,7 @@ pub fn registry() -> Registry {
     v.extend(table_mouse::specs());
     v.extend(review::specs());
     v.extend(assistant::specs());
+    v.extend(vba::specs());
     v.extend(file::specs());
     v.extend(options::specs());
     v.extend(design::specs());

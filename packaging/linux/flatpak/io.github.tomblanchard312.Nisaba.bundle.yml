@@ -17,6 +17,8 @@ runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 command: nisaba
 finish-args:
+  # On-demand Hugging Face model downloads.
+  - --share=network
   # Display: Wayland first; X11 only when no Wayland compositor is running.
   - --socket=wayland
   - --socket=fallback-x11
@@ -30,20 +32,14 @@ finish-args:
   # line, Open Recent, "Save" next to the original) work in the usual places.
   - --filesystem=xdg-documents
   - --filesystem=xdg-pictures
-  # The Assistant talks to the SharedAI daemon on the host through its private socket
-  # ($XDG_RUNTIME_DIR/sharedai/ipc.sock); only that folder of the runtime directory is shared.
-  - --filesystem=xdg-run/sharedai
-  # Deliberately not granted: network (the optional --control server listens on 127.0.0.1 in
-  # the sandbox; `flatpak override --user --share=network io.github.tomblanchard312.Nisaba` exposes it to
-  # host agents) and home/host filesystem access.
+  # Home/host filesystem access remains restricted.
+
 modules:
   - name: wordcraft
     buildsystem: simple
     build-commands:
       - install -Dm755 bin/nisaba /app/bin/nisaba
       - install -Dm755 bin/nisaba-cli /app/bin/nisaba-cli
-      # The writing assistant's local model service, when the tarball has it (SHAREDAI_BIN_DIR).
-      - if [ -d lib/nisaba ]; then install -Dm755 -t /app/lib/nisaba lib/nisaba/sharedai-daemon lib/nisaba/sharedai-worker; fi
       - install -Dm644 share/applications/io.github.tomblanchard312.Nisaba.desktop /app/share/applications/io.github.tomblanchard312.Nisaba.desktop
       - install -Dm644 share/mime/packages/io.github.tomblanchard312.Nisaba.xml /app/share/mime/packages/io.github.tomblanchard312.Nisaba.xml
       # Already has the release's version and date substituted by package.sh.

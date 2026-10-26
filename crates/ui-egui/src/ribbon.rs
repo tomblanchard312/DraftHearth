@@ -2232,6 +2232,9 @@ fn review(app: &mut WordApp, ui: &mut Ui) {
 
 /// Developer › Controls: content controls.
 fn developer(app: &mut WordApp, ui: &mut Ui) {
+    group(ui, "Code", None, app, |ui, app| {
+        big(ui, app, "macros", "Code\nEditor", "vba.editor", json!({}), false);
+    });
     let design = app.session.view.design_mode;
     group(ui, "Controls", None, app, |ui, app| {
         let rows: [[(&str, &str, &str); 3]; 3] = [

@@ -18,6 +18,8 @@ sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
 command: nisaba
 finish-args:
+  # On-demand Hugging Face model downloads.
+  - --share=network
   # Display: Wayland first; X11 only when no Wayland compositor is running.
   - --socket=wayland
   - --socket=fallback-x11
@@ -31,14 +33,8 @@ finish-args:
   # line, Open Recent, "Save" next to the original) work in the usual places.
   - --filesystem=xdg-documents
   - --filesystem=xdg-pictures
-  # The Assistant talks to the SharedAI daemon on the host through its private socket
-  # ($XDG_RUNTIME_DIR/sharedai/ipc.sock); only that folder of the runtime directory is shared.
-  - --filesystem=xdg-run/sharedai
-  # Deliberately not granted: network (the optional --control server listens on 127.0.0.1 in
-  # the sandbox; `flatpak override --user --share=network io.github.tomblanchard312.Nisaba` exposes it to
-  # host agents) and home/host filesystem access.
-build-options:
-  append-path: /usr/lib/sdk/rust-stable/bin
+  # Home/host filesystem access remains restricted.
+
 modules:
   - name: wordcraft
     buildsystem: simple

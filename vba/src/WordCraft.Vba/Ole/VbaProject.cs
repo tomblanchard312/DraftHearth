@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
+using System.Text.RegularExpressions;
 
 namespace WordCraft.Vba.Ole;
 
@@ -75,15 +76,16 @@ public static class VbaProjectReader
         return result;
     }
 
-    sealed record ModuleRecord(string Name, string StreamName, uint Offset, bool Procedural);
+    internal sealed record ModuleRecord(string Name, string StreamName, uint Offset, bool Procedural, int OffsetField);
 
     /// <summary>The dir stream: a flat list of (id, size, data) records, [MS-OVBA] 2.3.4.2.</summary>
-    static (int CodePage, List<ModuleRecord> Modules) ParseDir(byte[] dir)
+    internal static (int CodePage, List<ModuleRecord> Modules) ParseDir(byte[] dir)
     {
         int codePage = 1252;
         var modules = new List<ModuleRecord>();
         string? name = null, nameUnicode = null, stream = null, streamUnicode = null;
         uint offset = 0;
+        int offsetField = -1;
         bool procedural = true;
         var latin1 = Encoding.Latin1;
 
@@ -98,15 +100,15 @@ public static class VbaProjectReader
             switch (id)
             {
                 case 0x0003 when data.Length >= 2: codePage = BinaryPrimitives.ReadUInt16LittleEndian(data); break;
-                case 0x0019: name = latin1.GetString(data); nameUnicode = null; stream = streamUnicode = null; offset = 0; procedural = true; break;
+                case 0x0019: name = latin1.GetString(data); nameUnicode = null; stream = streamUnicode = null; offset = 0; offsetField = -1; procedural = true; break;
                 case 0x0047: nameUnicode = Encoding.Unicode.GetString(data); break;
                 case 0x001A: stream = latin1.GetString(data); break;
                 case 0x0032: streamUnicode = Encoding.Unicode.GetString(data); break;
-                case 0x0031 when data.Length >= 4: offset = BinaryPrimitives.ReadUInt32LittleEndian(data); break;
+                case 0x0031 when data.Length >= 4: offset = BinaryPrimitives.ReadUInt32LittleEndian(data); offsetField = pos - size; break;
                 case 0x0021: procedural = true; break;
                 case 0x0022: procedural = false; break;
                 case 0x002B when name is not null:
-                    modules.Add(new ModuleRecord(nameUnicode ?? name, streamUnicode ?? stream ?? name, offset, procedural));
+                    modules.Add(new ModuleRecord(nameUnicode ?? name, streamUnicode ?? stream ?? name, offset, procedural, offsetField));
                     name = null;
                     break;
                 case 0x0010: return (codePage, modules);
@@ -180,10 +182,25 @@ public static class VbaPackage
         return cfb.ToArray();
     }
 
-    static string WithName(VbaModule m) =>
-        m.Source.Contains("Attribute VB_Name", StringComparison.OrdinalIgnoreCase) ? m.Source : $"Attribute VB_Name = \"{m.Name}\"\r\n{m.Source}";
+    internal static string WithName(VbaModule m)
+    {
+        string source = m.Source.TrimStart('\uFEFF');
+        var attribute = Regex.Match(source, @"^Attribute\s+VB_Name\s*=\s*""([^""]+)""", RegexOptions.Multiline | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+        if (m.Kind == VbaModuleKind.Class && source.TrimStart().StartsWith("VERSION ", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!attribute.Success) throw new CompoundFileException("An exported class module needs Attribute VB_Name.");
+            source = source[attribute.Index..]; // Export-only VERSION/BEGIN properties are not module source.
+        }
+        if (attribute.Success)
+        {
+            if (!attribute.Groups[1].Value.Equals(m.Name, StringComparison.OrdinalIgnoreCase))
+                throw new CompoundFileException("The module name and Attribute VB_Name disagree.");
+            return source;
+        }
+        return $"Attribute VB_Name = \"{m.Name}\"\r\n{source}";
+    }
 
-    static byte[] Dir(List<VbaModule> modules, string projectName, int codePage, Encoding encoding)
+    internal static byte[] Dir(List<VbaModule> modules, string projectName, int codePage, Encoding encoding)
     {
         var ms = new MemoryStream();
         void Rec(int id, byte[] data) { Span<byte> h = stackalloc byte[6]; BinaryPrimitives.WriteUInt16LittleEndian(h, (ushort)id); BinaryPrimitives.WriteUInt32LittleEndian(h[2..], (uint)data.Length); ms.Write(h); ms.Write(data); }

@@ -29,7 +29,8 @@ cargo run --release -p wordcraft-cli -- convert in.docx out.pdf
 
 Packages install the programs as `nisaba` and `nisaba-cli`. Settings live in `~/.config/nisaba`
 (macOS `~/Library/Application Support/Nisaba`, Windows `%APPDATA%\Nisaba`), separate from an
-installed WordCraft.
+installed WordCraft. **Help › Check for Updates** links to Nisaba releases; automatic updates
+are currently disabled while the upstream installer is adapted to Nisaba’s package identity.
 
 ## Write with Scribe
 

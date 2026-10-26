@@ -115,19 +115,52 @@ fn english_words(text: &str) -> bool {
 
 /// Text that is right to show untranslated: what the author or the machine supplied, not the
 /// interface's own wording.
-struct Exempt {
+struct Exempt<'a> {
     /// The document's text (headings in the Navigation pane, the title in the title bar).
     body: String,
     /// Installed font families and the document's style names (pickers and editable fields).
     names: std::collections::HashSet<String>,
+    /// The Equation tab's UnicodeMath placeholders (math input, not interface wording).
+    math: &'a std::collections::HashSet<String>,
 }
 
-impl Exempt {
-    fn new(app: &WordApp) -> Self {
+/// The Equation tab's temporary UnicodeMath placeholders (while a preview loads). They are math
+/// input, not interface wording; a character the interface fonts lack becomes its linear name
+/// (`┬` → `\below`), so the exact strings are recognized rather than a pattern.
+fn math_placeholders(ctx: &egui::Context) -> std::collections::HashSet<String> {
+    let font = crate::theme::regular(11.0);
+    math_placeholders_with(|c| ctx.fonts_mut(|fonts| fonts.has_glyph(&font, c)))
+}
+
+/// [`math_placeholders`] given which characters the interface fonts cover, so the exact-string
+/// boundary can be tested without depending on the host's fonts.
+fn math_placeholders_with(covered: impl Fn(char) -> bool) -> std::collections::HashSet<String> {
+    let mut out = std::collections::HashSet::new();
+    for linear in crate::equation_tab::placeholder_linears() {
+        out.insert(crate::equation_tab::math_placeholder_with(&linear, &covered));
+    }
+    out
+}
+
+impl<'a> Exempt<'a> {
+    fn new(app: &WordApp, math_placeholders: &'a std::collections::HashSet<String>) -> Self {
         // Installed fonts, and the custom dictionary's words (File › Options › Proofing): the user's own.
         note_global_names();
         let mut names: std::collections::HashSet<String> = GLOBAL_NAMES.with_borrow(Clone::clone);
         names.extend(app.session.doc.styles.styles.iter().map(|s| s.name.clone()));
+        // Product identities, legal notices, URLs and author names are data, not interface wording.
+        names.extend(
+            [
+                wordcraft_brand::NAME,
+                wordcraft_brand::ASSISTANT_NAME,
+                wordcraft_brand::COPYRIGHT,
+                wordcraft_brand::HOMEPAGE.trim_start_matches("https://"),
+            ]
+            .map(str::to_string),
+        );
+        names.insert(app.session.author.clone());
+        names.insert(format!("{}: {}", wordcraft_brand::UPSTREAM_NAME, wordcraft_brand::UPSTREAM_HOMEPAGE.trim_start_matches("https://")));
+
         // Fonts a document asks for, installed or not (Aptos is drawn with a substitute).
         names.extend([wordcraft_doc::styles::BODY_FONT, wordcraft_doc::styles::HEADING_FONT].map(str::to_string));
         // The selected SmartArt graphic's items (the Text Pane): document content.
@@ -152,9 +185,13 @@ impl Exempt {
         if let Some(sugg) = app.canvas.context_issue.as_ref().and_then(|i| i.get("suggestions")).and_then(Value::as_array) {
             names.extend(sugg.iter().filter_map(Value::as_str).map(str::to_string));
         }
-        Exempt { body: app.session.doc.plain_text(wordcraft_doc::StoryRef::Body), names }
+        Exempt { body: app.session.doc.plain_text(wordcraft_doc::StoryRef::Body), names, math: math_placeholders }
     }
 
+    /// Whitelists text that is not interface wording: shortcuts and punctuation, status and Read
+    /// Aloud messages, theme font suffixes, icon lettering and account initials, math symbols and
+    /// equation placeholders, document body and known names, contributor handles, default style
+    /// names and fixed tokens.
     fn allows(&self, app: &WordApp, text: &str) -> bool {
         let plain = pseudo::unmarked(text);
         let plain = plain.trim().trim_end_matches(" —").trim();
@@ -167,13 +204,18 @@ impl Exempt {
         let theme_fonts = plain.strip_prefix(": ").is_some_and(|f| f.split(" / ").count() == 2);
         let icon_lettering = matches!(plain, "Aa" | "ab" | "abc" | "ac" | "cd" | "ab-" | "fx" | "ABC");
         let initials = plain.chars().count() == 2 && plain.chars().all(|c| c.is_ascii_uppercase());
+        // Math tiles fall back to UnicodeMath syntax while their preview loads. These are
+        // language-independent commands, and only names in the real symbol table qualify.
+        let math_symbol = plain.strip_prefix('\\').is_some_and(|name| wordcraft_doc::math_symbols::symbol(name).is_some());
         icon_lettering // drawn inside icons
             || initials // the account button
+            || math_symbol
             || status
             || theme_fonts
             || is_shortcut()
             || self.body.contains(plain)
             || self.names.contains(plain)
+            || self.math.contains(plain) // the Equation tab's `lim\below(n→∞)`-style placeholders
             || plain.starts_with('@') // contributor handles
             || plain.starts_with("Style") || plain.starts_with("Table Style ") // a new style's default name
             || plain.contains('┬') || plain.contains('\u{2061}') // equation input (UnicodeMath), drawn as math
@@ -181,6 +223,30 @@ impl Exempt {
             || plain == "CONFIDENTIAL" // the watermark dialog's text: document content, kept as typed
             || plain == "Figure 1" // the caption dialog's sample: the label goes into the document as is
     }
+}
+
+#[test]
+fn fork_identities_are_data_but_interface_labels_still_need_translation() {
+    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let math = Default::default();
+    let exempt = Exempt::new(&app, &math);
+    assert!(exempt.allows(&app, wordcraft_brand::NAME));
+    assert!(exempt.allows(&app, wordcraft_brand::COPYRIGHT));
+    assert!(exempt.allows(&app, &app.session.author));
+    assert!(!exempt.allows(&app, "Open Nisaba releases to check for a newer version."));
+    assert!(!exempt.allows(&app, "Document modules"));
+}
+
+#[test]
+fn math_placeholders_are_exact_math_input_only() {
+    // CI's interface fonts lack `┬`, so the Equation tab paints the linear fallback. Only those
+    // exact placeholders are math input; the set is not a backslash or "contains ┬" pattern.
+    let set = math_placeholders_with(|c| c.is_ascii() || matches!(c, '∞' | '→'));
+    assert!(set.contains("lim\\below(n→∞)"), "the limit button's fallback");
+    assert!(!set.contains("lim\u{252C}(n→∞)"), "the covered form is not what this font chain paints");
+    assert!(set.contains("\\sum_(i=1)^n"), "the Equation button picture");
+    assert!(set.contains("\\complement"), "a symbol tile's fallback");
+    assert!(!set.contains("Translate"), "ordinary interface wording is not exempt");
 }
 
 /// Fails on interface text drawn without going through the catalog, listed per UI state, and
@@ -191,15 +257,16 @@ impl Exempt {
 #[test]
 fn untranslated_interface_text() {
     pseudo::set(true);
+    let ctx = egui::Context::default();
+    let mut app = fresh_app(&ctx);
+    let math_placeholders = math_placeholders(&ctx);
     let mut found: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut record = |app: &WordApp, state: &str, drawn: Vec<String>| {
-        let exempt = Exempt::new(app);
+        let exempt = Exempt::new(app, &math_placeholders);
         for t in drawn.into_iter().filter(|t| english_words(t) && !exempt.allows(app, t)) {
             found.entry(t).or_default().push(state.to_string());
         }
     };
-    let ctx = egui::Context::default();
-    let mut app = fresh_app(&ctx);
     let tabs: Vec<&str> = crate::ribbon::TABS.iter().copied().filter(|t| *t != "File").collect();
     for tab in &tabs {
         let _ = app.run("ui.tab", json!({"tab": tab}));

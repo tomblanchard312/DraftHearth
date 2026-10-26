@@ -11,7 +11,7 @@ workspace = true
 [dependencies]
 wordcraft-brand.workspace = true
 log = { workspace = true }
-miniz_oxide = "0.8"
+miniz_oxide = "0.9"
 unicode-normalization = "0.1"
 
 [dev-dependencies]

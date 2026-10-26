@@ -619,11 +619,6 @@ fn working_label(ui: &mut Ui, text: &str) {
 }
 
 pub fn pane(app: &mut WordApp, ui: &mut Ui) {
-    if crate::panes::header(ui, NAME) {
-        app.assistant.stop();
-        let _ = app.run("view.assistantPane", json!({"value": false}));
-        return;
-    }
     let model_now = app.session.prefs.assistant_model.clone();
     if let Some(m) = app.assistant.poll(&model_now) {
         let _ = app.run("assistant.settings", json!({"model": m}));

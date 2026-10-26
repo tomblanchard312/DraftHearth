@@ -828,7 +828,7 @@ fn editor(app: &mut WordApp, ui: &mut Ui) {
                     .char_limit(MAX_SOURCE / 4)
                     .layouter(&mut layouter)
                     .show(ui);
-                edit.response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, ui.is_enabled(), "VBA module source"));
+                edit.response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, ui.is_enabled(), "VBA module source"));
                 if let Some(cursor) = edit.cursor_range {
                     app.vba.cursor = cursor.primary.index.into();
                 }
@@ -906,7 +906,7 @@ mod tests {
     }
     #[test]
     fn completion_uses_character_positions_and_refuses_stale_source() {
-        assert_eq!(insert_completion("é🙂x", "é🙂x", 2, "!").unwrap(), "é🙂!x");
+        assert_eq!(insert_completion("é\u{1f642}x", "é\u{1f642}x", 2, "!").unwrap(), "é\u{1f642}!x");
         assert!(insert_completion("changed", "original", 0, "bad").is_err());
         assert!(insert_completion("x", "x", 0, &"a".repeat(MAX_SOURCE)).is_err());
     }

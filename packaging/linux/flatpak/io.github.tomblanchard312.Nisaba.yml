@@ -51,6 +51,7 @@ modules:
       - install -Dm755 target/release/wordcraft-cli /app/bin/nisaba-cli
       - install -Dm644 packaging/linux/io.github.tomblanchard312.Nisaba.desktop /app/share/applications/io.github.tomblanchard312.Nisaba.desktop
       - install -Dm644 packaging/linux/io.github.tomblanchard312.Nisaba.mime.xml /app/share/mime/packages/io.github.tomblanchard312.Nisaba.xml
+      - install -Dm644 NOTICE /app/share/doc/nisaba/NOTICE
       - mkdir -p /app/share/icons && cp -R assets/app-icon/hicolor /app/share/icons/
       - >-
         version=$(awk '/^\[/{p=($0=="[workspace.package]");next} p&&$1=="version"{gsub(/[" ]/,"",$3);print $3;exit}' Cargo.toml);
@@ -69,6 +70,6 @@ modules:
       # The interface translations at the commit in craft-i18n.rev (a test keeps the two equal).
       - type: git
         url: https://github.com/storytold/craft-i18n
-        commit: 04600cbb1508f1b15927ec574a5e32e5f376fd8b
+        commit: 9205108cfdced5177706264038848b68b2422d2b
         dest: craft-i18n
       - cargo-sources.json

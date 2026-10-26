@@ -182,14 +182,19 @@ pub(super) fn sync_document(app: &mut WordApp) {
 
 fn explorer(app: &mut WordApp, ui: &mut Ui) {
     ui.strong(tl!("Project Explorer"));
-    let title =
-        app.session.path.as_ref().and_then(|p| p.file_name()).map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "Untitled document".into());
+    let title = app
+        .session
+        .path
+        .as_ref()
+        .and_then(|p| p.file_name())
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| tl!("Untitled document").into());
     ui.label(title);
     ui.separator();
     egui::ScrollArea::vertical().id_salt("vba_explorer").max_height(560.0).show(ui, |ui| {
         let mut picked = None;
         for (group, kind) in [("Document modules", "Document"), ("Modules", "Standard"), ("Classes", "Class"), ("Forms / designers", "Form")] {
-            egui::CollapsingHeader::new(group).default_open(true).show(ui, |ui| {
+            egui::CollapsingHeader::new(tl!(group)).default_open(true).show(ui, |ui| {
                 for (i, module) in app.vba.modules.iter().enumerate().filter(|(_, m)| m.document == app.session.document_id()) {
                     if module.kind != kind && !(kind == "Standard" && module.kind.is_empty()) {
                         continue;
@@ -246,7 +251,7 @@ fn designer(app: &mut WordApp, ui: &mut Ui) {
             let response = ui.add(egui::Button::new("").min_size(egui::vec2(36.0, 36.0)).sense(egui::Sense::click_and_drag()));
             let t = Tokens::get(ui.ctx());
             crate::icons::paint(ui.painter(), egui::Rect::from_center_size(response.rect.center(), egui::vec2(26.0, 26.0)), icon, t.icon, t.accent);
-            response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), *label));
+            response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), *label));
             let response = response.on_hover_text(tl!(*label));
             response.dnd_set_drag_payload(FormControlDrag { command, document: app.session.document_id() });
             if response.clicked() {
@@ -302,8 +307,8 @@ fn designer(app: &mut WordApp, ui: &mut Ui) {
             }
         }
     });
-    ui.label(tl!("Replace the selected text"));
-    ui.add(egui::TextEdit::multiline(&mut app.vba.workspace.replacement).desired_rows(3).char_limit(4000));
+    let replacement_label = ui.label(tl!("Replace the selected text"));
+    ui.add(egui::TextEdit::multiline(&mut app.vba.workspace.replacement).desired_rows(3).char_limit(4000)).labelled_by(replacement_label.id);
     if ui.button(tl!("Apply text")).clicked() {
         let text = app.vba.workspace.replacement.clone();
         run(app, "text.insert", json!({"text":text,"raw":true}));
@@ -362,10 +367,6 @@ pub(super) fn pane(app: &mut WordApp, ui: &mut Ui) {
     sync_document(app);
     app.vba.poll();
     finish_project(app);
-    if crate::panes::header(ui, "VBA Workspace") {
-        let _ = app.run("vba.editor", json!({"value":false}));
-        return;
-    }
     if app.vba.job.is_some() {
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(50));
     }
@@ -382,7 +383,7 @@ pub(super) fn pane(app: &mut WordApp, ui: &mut Ui) {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 for (i, label) in ["Code", "Designer", "Chat"].iter().enumerate() {
-                    ui.selectable_value(&mut app.vba.workspace.tab, i, *label);
+                    ui.selectable_value(&mut app.vba.workspace.tab, i, tl!(*label));
                 }
             });
             ui.separator();
@@ -422,7 +423,7 @@ mod tests {
     }
     #[test]
     fn document_context_is_bounded_and_contains_more_than_a_preview() {
-        let document = format!("{} Unique task detail {}", "é".repeat(100), "🙂".repeat(10000));
+        let document = format!("{} Unique task detail {}", "é".repeat(100), "\u{1f642}".repeat(10000));
         let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text(&document)), crate::Services::default());
         let text = context(&app);
         assert!(text.contains("Unique task detail"));

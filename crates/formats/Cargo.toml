@@ -26,4 +26,5 @@ chrono = { workspace = true }
 js-sys = "0.3"
 
 [dev-dependencies]
+wordcraft-doc = { workspace = true, features = ["test-support"] }
 proptest = { workspace = true }

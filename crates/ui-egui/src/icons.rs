@@ -1,8 +1,23 @@
-//! WordCraft's icon set, drawn in code (original artwork; no external icon assets).
+//! Original interface icons, drawn in code except for the embedded Scribe artwork.
 //!
 //! Icons are designed on a 20×20 grid in two colours: line work (`c`) and an accent (`a`).
 
 use egui::{Color32, FontId, Painter, Pos2, Rect, Shape, Stroke, pos2, vec2};
+
+const SCRIBE_PNG: &[u8] = include_bytes!("../../../assets/icons/scribe.png");
+
+fn scribe_texture(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+    let key = egui::Id::unique("nisaba.scribe.icon");
+    if let Some(texture) = ctx.data(|d| d.get_temp::<egui::TextureHandle>(key)) {
+        return Some(texture);
+    }
+    let rgba = image::load_from_memory_with_format(SCRIBE_PNG, image::ImageFormat::Png).ok()?.into_rgba8();
+    let size = [rgba.width() as usize, rgba.height() as usize];
+    let image = egui::ColorImage::from_rgba_unmultiplied(size, rgba.as_raw());
+    let texture = ctx.load_texture("Scribe", image, egui::TextureOptions::LINEAR);
+    ctx.data_mut(|d| d.insert_temp(key, texture.clone()));
+    Some(texture)
+}
 
 struct Pen<'a> {
     p: &'a Painter,
@@ -891,11 +906,13 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, accent: Color32) {
             pen.line(&[(10.0, 12.0), (13.0, 17.5)]);
         }
         "assistant" => {
-            // Nisaba's Assistant: a speech bubble with a four-pointed spark.
-            pen.closed(&[(2.5, 4.5), (14.5, 4.5), (14.5, 14.0), (8.0, 14.0), (4.5, 17.0), (4.5, 14.0), (2.5, 14.0)], c);
-            pen.closed(&[(15.0, 1.5), (16.0, 4.0), (18.5, 5.0), (16.0, 6.0), (15.0, 8.5), (14.0, 6.0), (11.5, 5.0), (14.0, 4.0)], a);
-            pen.line_c(&[(5.5, 8.0), (11.0, 8.0)], c);
-            pen.line_c(&[(5.5, 11.0), (9.5, 11.0)], c);
+            if let Some(texture) = scribe_texture(p.ctx()) {
+                let square = Rect::from_center_size(r.center(), vec2(r.width().min(r.height()), r.width().min(r.height())));
+                let tint = if c == accent { c } else { Color32::WHITE };
+                p.image(texture.id(), square, Rect::from_min_max(Pos2::ZERO, pos2(1.0, 1.0)), tint);
+            } else {
+                pen.text(10.0, 10.0, 18.0, "S", a, true);
+            }
         }
         "altText" => {
             // A small picture with lines of text beside and below it.
@@ -1638,6 +1655,23 @@ pub fn library(p: &Painter, r: Rect, icon: &wordcraft_render::icon_lib::Icon, c:
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scribe_artwork_is_transparent_and_its_texture_is_reused() {
+        let rgba = image::load_from_memory_with_format(SCRIBE_PNG, image::ImageFormat::Png).unwrap().into_rgba8();
+        assert!(rgba.pixels().any(|p| p[3] == 0));
+        assert!(rgba.pixels().any(|p| p[3] == 255));
+        let ctx = egui::Context::default();
+        let texture = scribe_texture(&ctx).unwrap();
+        for size in [16.0, 24.0, 32.0] {
+            let output = ctx.run_ui(egui::RawInput::default(), |ui| {
+                paint(ui.painter(), Rect::from_min_size(Pos2::ZERO, vec2(size, size)), "assistant", Color32::BLACK, Color32::BLUE);
+            });
+            assert!(output.shapes.iter().any(|s| matches!(&s.shape, Shape::Mesh(m) if m.texture_id == texture.id())));
+            assert_eq!(scribe_texture(&ctx).unwrap().id(), texture.id());
+            output.drop_without_applying_deltas();
+        }
+    }
 
     fn has_default_highlight_bar(name: &str) -> bool {
         let ctx = egui::Context::default();

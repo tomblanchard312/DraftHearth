@@ -1,8 +1,11 @@
 # Scribe, the writing assistant
 
-> **Last updated:** 2026-10-26 · **Change:** safer suggestion targeting, complete-output guards, caret continuation and clearer settings.
+> **Last updated:** 2026-10-26 · **Change:** approved Scribe artwork embedded in the ribbon and assistant pane; safer suggestion targeting and caret continuation retained.
 
 Scribe suggests rewrites and new text using a language model that runs on the user's own computer. Nothing is sent to a cloud service. Suggestions go into the document as **tracked changes** by "Scribe", so they are accepted or rejected on the Review tab like a colleague's edits.
+
+Scribe’s blue folded-page S and wedge-cut reed icon is embedded in the Review ribbon and the
+assistant pane. The original transparent artwork is recorded in [ATTRIBUTION.md](../ATTRIBUTION.md).
 
 Scribe runs GGUF chat models directly in Nisaba using llama.cpp on the CPU. Download a catalog model or choose a local model file to get started. The assistant name remains `wordcraft_brand::ASSISTANT_NAME`.
 
@@ -70,5 +73,6 @@ Not yet: GPU acceleration, model caching between requests or conversation histor
 
 | Date | Change |
 |---|---|
+| 2026-10-26 | Embedded the approved blue S/reed-tip icon, cached per UI context; inspected light/dark headless renders. |
 | 2026-10-26 | Guarded stale/partial suggestions and oversized selections; separated source data in prompts, added concise caret continuation, grouped model setup in Settings and verified real writing/review flows. |
 | 2026-10-25 | Replaced the daemon dependency with in-process CPU GGUF inference and a checksum-pinned Hugging Face download catalog. |

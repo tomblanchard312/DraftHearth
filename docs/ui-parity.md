@@ -1,5 +1,7 @@
 # UI parity with Microsoft Word
 
+> **Scribe identity:** 2026-10-26 · Approved blue S/reed-tip artwork is embedded in the ribbon and assistant pane; light/dark headless renders checked.
+
 > **Upstream integration:** 2026-10-26 · WordCraft `438775ce` (296 incoming commits) reconciled with Nisaba, including egui 0.37 and native document windows. Scribe/VBA retained; font/layout test assumptions corrected and all eight CI gates pass. See [integration evidence](upstream-sync.md).
 
 > **Status update:** 2026-10-26 · Scribe uses in-process CPU GGUF inference and verified model downloads; Developer has a VBA project explorer, source editor, document designer, contextual local chat and separate Phi-4 completion. Readiness estimates unchanged.
@@ -83,6 +85,8 @@ Find selects the Results tab, including when it prefills selected text. Editing 
 Footnote and endnote editing keeps body and note text at normal opacity, on light and dark pages. Headers and footers still dim outside their editing context (#2545).
 
 ## Revision history
+
+> 2026-10-26: Scribe uses its approved original blue S/reed-tip artwork in the Review ribbon and pane; embedded locally, attributed and checked in light/dark headless renders. Readiness estimates unchanged.
 
 > 2026-10-26: Corrected host-font and pagination fixture assumptions without disabling Thai or adding test skips; all eight CI gates pass. Product parity estimates remain unchanged.
 

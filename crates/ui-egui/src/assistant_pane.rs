@@ -632,9 +632,19 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
     let work = app.assistant.job.as_ref().map(|j| j.work);
     let busy = work.is_some();
 
-    ui.label(
-        egui::RichText::new(tl!("Works privately on this computer. Suggestions arrive as tracked changes you can accept or reject.")).small().weak(),
-    );
+    ui.horizontal_top(|ui| {
+        let (rect, _) = ui.allocate_exact_size(egui::vec2(32.0, 32.0), egui::Sense::hover());
+        let t = crate::theme::Tokens::get(ui.ctx());
+        crate::icons::paint(ui.painter(), rect, "assistant", t.icon, t.accent);
+        ui.add(
+            egui::Label::new(
+                egui::RichText::new(tl!("Works privately on this computer. Suggestions arrive as tracked changes you can accept or reject."))
+                    .small()
+                    .weak(),
+            )
+            .wrap(),
+        );
+    });
     ui.add_space(8.0);
 
     ui.collapsing(tl!("Settings"), |ui| {

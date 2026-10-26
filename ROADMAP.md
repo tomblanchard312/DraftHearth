@@ -144,6 +144,8 @@ Ranked, to beta (detail and remaining milestones in [docs/roadmap.md](docs/roadm
 
 ## Progress log
 
+- 2026-10-26: Embedded Scribe’s approved blue S/reed-tip icon in the Review ribbon and assistant pane, with attribution and light/dark visual checks. Readiness estimates unchanged.
+
 - 2026-10-26: Cleared the four inherited font/layout failures by correcting environment-dependent tests. Thai rendering stays enabled; all eight CI gates pass (4,623 workspace tests). Readiness estimates unchanged.
 
 - 2026-10-26: Integrated upstream `438775ce` with native document windows and egui 0.37; Scribe/VBA pane and buffer regressions pass. Four confirmed pre-existing font/layout failures remain open; readiness estimates unchanged.
@@ -662,6 +664,8 @@ Imported Word 97–2003 `.doc`/`.dot` files now ask for a supported DOCX target 
 Footer page-table height and body wrapping are corrected. Other pagination gaps remain open.
 
 ## Revision history
+
+> 2026-10-26: Scribe uses its approved original blue S/reed-tip artwork in the Review ribbon and pane; embedded locally, attributed and checked in light/dark headless renders. Readiness estimates unchanged.
 
 > 2026-10-26: Corrected host-font and pagination fixture assumptions without disabling Thai or adding test skips; all eight CI gates pass. Product parity estimates remain unchanged.
 

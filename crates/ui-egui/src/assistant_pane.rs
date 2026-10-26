@@ -140,11 +140,17 @@ pub fn cleaned(reply: &str) -> String {
     t.to_string()
 }
 
+/// How long a model the service refused stays out of the list (its rescan is every 30 s).
+const REFUSED_FOR: std::time::Duration = std::time::Duration::from_secs(60);
+
 enum Msg {
     Models(Result<Vec<String>, String>),
     Chunk(String),
     Done(Result<String, String>),
     Added(Result<String, String>),
+    /// The service no longer has the model as registered (renamed, replaced, still being
+    /// copied): say so, set that model aside and look at the model list again.
+    Stale(String, String),
 }
 
 /// What the background job is doing, for the pane's wording.
@@ -183,6 +189,9 @@ pub struct State {
     asked_models: bool,
     /// When the model list was last fetched (`egui` input time), to look again while it is empty.
     listed_at: f64,
+    /// Models the service refused because their file is unavailable, with when. Each is skipped
+    /// for `REFUSED_FOR`, long enough for the service to rescan its models folder and repair it.
+    refused: Vec<(String, std::time::Instant)>,
     job: Option<Job>,
     origin: Option<Origin>,
 }
@@ -211,12 +220,24 @@ impl State {
                     self.job = None;
                     break;
                 }
+                Ok(Msg::Stale(text, model)) => {
+                    self.status = text;
+                    self.refused.retain(|(m, _)| *m != model);
+                    self.refused.push((model, std::time::Instant::now()));
+                    self.job = None;
+                    // Fetch the model list again on the next frame; the service rescans its
+                    // models folder on its own.
+                    self.asked_models = false;
+                    break;
+                }
                 Ok(Msg::Models(r)) => {
                     self.listed = true;
                     match r {
-                        Ok(m) => {
+                        Ok(mut m) => {
                             self.unavailable = false;
                             self.status.clear();
+                            self.refused.retain(|(_, at)| at.elapsed() < REFUSED_FOR);
+                            m.retain(|x| !self.refused.iter().any(|(r, _)| r == x));
                             if !m.iter().any(|x| x == prefs_model) {
                                 chosen = pick_default(&m);
                             }
@@ -293,7 +314,7 @@ pub fn friendly(e: &wordcraft_sharedai::Error) -> String {
         E::Registry(_) => tl!("That model couldn't be added.").to_string(),
         E::Inference { kind, .. } => match kind.as_str() {
             "context_overflow" => f(tl!("That's more text than {name} can read at once. Select less.")),
-            "model_not_found" | "model_rejected" => f(tl!("{name}'s model is missing or has changed. Choose the model file again.")),
+            "model_not_found" | "model_rejected" => f(tl!("{name} is getting its model ready. Try again in a moment.")),
             "load_failed" => f(tl!("{name} couldn't load its model. It may need more memory, or another model file.")),
             "worker_crashed" => f(tl!("{name} stopped unexpectedly. Try again.")),
             _ => f(tl!("{name} ran into a problem. Try again.")),
@@ -452,7 +473,7 @@ fn ask(app: &mut WordApp, action: Option<Action>) {
     }
     let model = app.session.prefs.assistant_model.clone();
     if model.is_empty() {
-        app.assistant.status = tl!("Choose a model file first.").to_string();
+        app.assistant.status = crate::i18n::fmt(tl!("{name} has no model yet. Put one in the models folder."), &[("name", NAME)]);
         return;
     }
     let msgs = messages(action, &app.assistant.prompt, &text);
@@ -484,7 +505,14 @@ fn ask(app: &mut WordApp, action: Option<Action>) {
         let done = match r {
             Ok(s) if s.reason == "length" => Ok(tl!("Stopped at the length limit.").to_string()),
             Ok(_) => Ok(String::new()),
-            Err(e) => Err(friendly(&e)),
+            Err(e) => {
+                let stale = matches!(&e, wordcraft_sharedai::Error::Inference { kind, .. } if kind == "model_not_found" || kind == "model_rejected");
+                if stale {
+                    let _ = tx.send(Msg::Stale(friendly(&e), model.clone()));
+                    return;
+                }
+                Err(friendly(&e))
+            }
         };
         let _ = tx.send(Msg::Done(done));
     });

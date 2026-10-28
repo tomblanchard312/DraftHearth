@@ -458,6 +458,7 @@ fn main() -> eframe::Result {
             let mut session = Session::new(doc);
             session.system_region = region;
             let mut app = WordApp::new(session, services(file_dialog, &cc.egui_ctx));
+            warm_flux();
             app.set_startup_update_check(true);
             load_prefs(&mut app);
             load_user_dictionary(&mut app);
@@ -583,6 +584,47 @@ mod tests {
         }
         let _ = std::fs::remove_dir_all(dir);
     }
+}
+
+/// Read FLUX.2 klein into memory when this app opens, if the files are already on disk.
+/// The thread keeps the daemon's idle timer fresh until the process exits. Nothing is downloaded.
+fn warm_flux() {
+    let _ = std::thread::Builder::new().name("flux-warm".into()).spawn(|| {
+        if !sharedai_client::default_image_model_present() {
+            return;
+        }
+        let endpoint = match wordcraft_sharedai::endpoint("") {
+            Ok(path) => path,
+            Err(error) => {
+                log::warn!("image model was not loaded: {error}");
+                return;
+            }
+        };
+        if let Err(error) = wordcraft_sharedai::ensure_running(&endpoint, Some(&endpoint)) {
+            log::warn!("image model was not loaded: {error}");
+            return;
+        }
+        // Shorter than the daemon's 10 minute idle unload.
+        let keep_alive = std::time::Duration::from_secs(240);
+        let retry = std::time::Duration::from_secs(15);
+        let mut announced = false;
+        loop {
+            match sharedai_client::prepare_image("nisaba", sharedai_client::DEFAULT_IMAGE_MODEL_ID) {
+                Ok(()) => {
+                    if !announced {
+                        log::info!("FLUX.2 klein is loaded");
+                        announced = true;
+                    }
+                    std::thread::sleep(keep_alive);
+                }
+                Err(error) => {
+                    log::warn!("FLUX.2 klein was not loaded: {error}");
+                    announced = false;
+                    std::thread::sleep(retry);
+                }
+            }
+        }
+    });
 }
 
 #[cfg(test)]

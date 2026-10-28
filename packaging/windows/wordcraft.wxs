@@ -38,6 +38,7 @@
       Compressed="yes"
       Language="1033">
     <SummaryInformation Description="Nisaba word processor" Manufacturer="Tom Blanchard" />
+    <?include $(sys.SOURCEFILEDIR)install-policy.wxi?>
     <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
          (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
     <MajorUpgrade AllowSameVersionUpgrades="yes"
@@ -99,6 +100,7 @@
         </File>
 
         <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\wordcraft.exe" Value="[#WordcraftExe]" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Nisaba" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
       </Component>
 
       <!-- File associations (#295). Each document type gets a Nisaba ProgId (name, icon, open

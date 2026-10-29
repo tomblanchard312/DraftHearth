@@ -128,6 +128,15 @@ impl Exempt {
         note_global_names();
         let mut names: std::collections::HashSet<String> = GLOBAL_NAMES.with_borrow(Clone::clone);
         names.extend(app.session.doc.styles.styles.iter().map(|s| s.name.clone()));
+        // Product identity, legal credits and user-selected names keep their original spelling.
+        names.extend([
+            wordcraft_brand::NAME.to_string(),
+            wordcraft_brand::COPYRIGHT.to_string(),
+            wordcraft_brand::HOMEPAGE.trim_start_matches("https://").to_string(),
+            format!("{}: {}", wordcraft_brand::UPSTREAM_NAME, wordcraft_brand::UPSTREAM_HOMEPAGE.trim_start_matches("https://")),
+            app.session.author.clone(),
+            app.session.prefs.assistant_model.clone(),
+        ]);
         // Fonts a document asks for, installed or not (Aptos is drawn with a substitute).
         names.extend([wordcraft_doc::styles::BODY_FONT, wordcraft_doc::styles::HEADING_FONT].map(str::to_string));
         // The selected SmartArt graphic's items (the Text Pane): document content.

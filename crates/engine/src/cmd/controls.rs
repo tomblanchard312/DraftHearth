@@ -24,6 +24,7 @@ pub fn specs() -> Vec<CommandSpec> {
     const INSERT: &str = r#"{"title"?: string, "tag"?: string}"#;
     const LIST: &str = r#"{"title"?: string, "tag"?: string, "items"?: [string | {"display": string, "value"?: string}]}"#;
     vec![
+        CommandSpec::new("document.contentControls", "Inspect Content Controls", "Agents", content_controls).pure(),
         CommandSpec::new("developer.richText", "Rich Text Content Control", LOC, |s, v| insert(s, v, ControlKind::RichText)).params(INSERT),
         CommandSpec::new("developer.plainText", "Plain Text Content Control", LOC, |s, v| insert(s, v, ControlKind::Text { multi_line: false }))
             .params(INSERT),
@@ -56,14 +57,14 @@ pub fn specs() -> Vec<CommandSpec> {
         .params(INSERT),
         CommandSpec::new("developer.designMode", "Design Mode", LOC, design_mode).params(r#"{"value"?: bool}"#).pure(),
         CommandSpec::new("developer.properties", "Properties", LOC, properties).params(
-            r#"{"control"?: tag or title, "title"?: string, "tag"?: string, "lockDelete"?: bool, "lockEdit"?: bool, "temporary"?: bool, "multiLine"?: bool, "placeholder"?: string, "items"?: [string | {"display", "value"}], "format"?: "M/d/yyyy", "checkedSymbol"?: char, "uncheckedSymbol"?: char}"#,
+            r#"{"document"?: document id, "id"?: integer, "control"?: tag or title, "title"?: string, "tag"?: string, "lockDelete"?: bool, "lockEdit"?: bool, "temporary"?: bool, "multiLine"?: bool, "placeholder"?: string, "items"?: [string | {"display", "value"}], "format"?: "M/d/yyyy", "checkedSymbol"?: char, "uncheckedSymbol"?: char}"#,
         ),
-        CommandSpec::new("developer.control", "Content Control at Selection", LOC, info).params(r#"{"control"?: tag or title, "at"?: pos}"#).pure(),
-        CommandSpec::new("developer.toggleCheckBox", "Toggle Check Box", LOC, toggle_check_box).params(r#"{"control"?: tag or title, "at"?: pos, "value"?: bool}"#),
+        CommandSpec::new("developer.control", "Content Control at Selection", LOC, info).params(r#"{"document"?: document id, "id"?: integer, "control"?: tag or title, "at"?: pos}"#).pure(),
+        CommandSpec::new("developer.toggleCheckBox", "Toggle Check Box", LOC, toggle_check_box).params(r#"{"document"?: document id, "id"?: integer, "control"?: tag or title, "at"?: pos, "value"?: bool}"#),
         CommandSpec::new("developer.chooseItem", "Choose List Item", LOC, choose_item)
-            .params(r#"{"control"?: tag or title, "at"?: pos, "index"?: number, "value"?: string, "text"?: string}"#),
-        CommandSpec::new("developer.setDate", "Set Date", LOC, set_date).params(r#"{"control"?: tag or title, "at"?: pos, "date": "YYYY-MM-DD"}"#),
-        CommandSpec::new("developer.removeControl", "Remove Content Control", LOC, remove_control).params(r#"{"control"?: tag or title, "at"?: pos}"#),
+            .params(r#"{"document"?: document id, "id"?: integer, "control"?: tag or title, "at"?: pos, "index"?: number, "value"?: string, "text"?: string}"#),
+        CommandSpec::new("developer.setDate", "Set Date", LOC, set_date).params(r#"{"document"?: document id, "id"?: integer, "control"?: tag or title, "at"?: pos, "date": "YYYY-MM-DD"}"#),
+        CommandSpec::new("developer.removeControl", "Remove Content Control", LOC, remove_control).params(r#"{"document"?: document id, "id"?: integer, "control"?: tag or title, "at"?: pos}"#),
     ]
 }
 
@@ -241,8 +242,23 @@ fn control_near(s: &Session, at: &Pos) -> Option<ControlRange> {
 }
 
 /// The control a command acts on: `control` (a tag or title) in the caret's story, else the one
-/// at `at` (a position), else the one at the caret.
+/// at `at` (a position), else the one at the caret. An explicit `id` resolves a unique body control first.
 fn target(s: &Session, v: &Value) -> Result<ControlRange, CmdError> {
+    if let Some(document) = v.get("document") {
+        let document = document.as_u64().ok_or_else(|| CmdError::Params("document must be a document id".into()))?;
+        if document != s.document_id() {
+            return Err(CmdError::Failed("the control belongs to a different document".into()));
+        }
+    }
+    if let Some(id) = v.get("id") {
+        let id = id.as_i64().ok_or_else(|| CmdError::Params("id must be an integer".into()))?;
+        let mut matches = s.doc.control_ranges(StoryRef::Body).into_iter().filter(|r| r.control.id == Some(id));
+        let control = matches.next().ok_or_else(|| CmdError::Failed(format!("no content control has id {id}")))?;
+        if matches.next().is_some() {
+            return Err(CmdError::Failed("content control id is ambiguous".into()));
+        }
+        return Ok(control);
+    }
     if let Some(name) = p::str(v, "control") {
         let story = s.sel.focus.story;
         let stories = std::iter::once(story).chain(std::iter::once(StoryRef::Body));
@@ -536,6 +552,21 @@ fn design_mode(s: &mut Session, v: &Value) -> CmdResult {
     Ok(json!({"designMode": s.view.design_mode}))
 }
 
+fn content_controls(s: &mut Session, _: &Value) -> CmdResult {
+    let mut controls = s.doc.control_ranges(StoryRef::Body);
+    controls.sort_by(|a, b| a.start.cmp(&b.start).then_with(|| b.end.cmp(&a.end)));
+    let values: Vec<_> = controls
+        .iter()
+        .take(4096)
+        .map(|r| {
+            let mut value = describe(s, r);
+            value["contentStart"] = super::pos_json(&r.content_start());
+            value
+        })
+        .collect();
+    Ok(json!({"document":s.document_id(), "controls":values, "truncated":controls.len()>4096}))
+}
+
 /// What a command or dialog needs to know about a control.
 pub fn describe(s: &Session, r: &ControlRange) -> Value {
     let c = &r.control;
@@ -813,6 +844,31 @@ mod editing_tests {
     }
     fn info(s: &mut Session) -> serde_json::Value {
         run(s, "developer.control", json!({}))
+    }
+
+    #[test]
+    fn automation_resolves_controls_by_id_and_refuses_ambiguous_or_invalid_ids() {
+        let mut s = Session::new(wordcraft_doc::Document::new());
+        run(&mut s, "developer.plainText", json!({"tag":"shared"}));
+        run(&mut s, "caret.docEnd", json!({}));
+        run(&mut s, "text.newParagraph", json!({}));
+        run(&mut s, "developer.checkBox", json!({"tag":"shared"}));
+        let depth = s.undo_depth();
+        let controls = run(&mut s, "document.contentControls", json!({}));
+        assert_eq!(s.undo_depth(), depth, "query is read-only");
+        let first = controls["controls"][0]["id"].as_i64().unwrap();
+        let second = controls["controls"][1]["id"].as_i64().unwrap();
+        assert_ne!(first, second);
+        assert!(s.run("developer.toggleCheckBox", &json!({"id":second,"document":s.document_id().saturating_add(1),"value":true})).is_err());
+        run(&mut s, "developer.toggleCheckBox", json!({"id":second,"value":true}));
+        assert_eq!(run(&mut s, "document.contentControls", json!({}))["controls"][1]["checked"], true);
+        for id in [json!("wrong"), json!(-999)] {
+            assert!(s.run("developer.properties", &json!({"id":id,"title":"must not change"})).is_err());
+        }
+        let ranges = s.doc.control_ranges(StoryRef::Body);
+        s.doc.control_mut(&ranges[0].start).unwrap().id = Some(second);
+        assert!(s.run("developer.toggleCheckBox", &json!({"id":second,"value":false})).is_err());
+        assert!(matches!(s.doc.control_ranges(StoryRef::Body)[1].control.kind, ControlKind::CheckBox { checked: true, .. }));
     }
 
     /// A form from German Word names its placeholder style `Platzhaltertext` ("Placeholder Text"),

@@ -1,61 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Nisaba app icon: a clay tablet with three lines of wedge-shaped (cuneiform-like) marks and a
-       reed stylus, on a night-indigo tile. Original artwork for this repository (MIT OR Apache-2.0).
-       Full-bleed 512 tile with rx=112, the shape packaging/icons.sh expects. -->
   <defs>
-    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#3B2F7A"/>
-      <stop offset="1" stop-color="#1B1640"/>
-    </linearGradient>
-    <linearGradient id="clay" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#F2D6AE"/>
-      <stop offset="1" stop-color="#D9AF7C"/>
-    </linearGradient>
-    <linearGradient id="reed" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#F6CF6A"/>
-      <stop offset="1" stop-color="#C9922E"/>
-    </linearGradient>
-    <!-- One wedge: a triangular head pressed into the clay with a short tail. -->
-    <g id="wedge">
-      <path d="M0 -13 L26 0 L0 13 Z" fill="#7A4A26"/>
-      <rect x="20" y="-3" width="26" height="6" rx="3" fill="#7A4A26"/>
-    </g>
-    <g id="down">
-      <path d="M-12 0 L0 24 L12 0 Z" fill="#7A4A26"/>
-      <rect x="-3" y="18" width="6" height="24" rx="3" fill="#7A4A26"/>
-    </g>
+    <linearGradient id="navy" x2=".8" y2="1"><stop stop-color="#173d79"/><stop offset="1" stop-color="#06142e"/></linearGradient>
+    <linearGradient id="blue" x2=".8" y2="1"><stop stop-color="#47d9ff"/><stop offset=".5" stop-color="#138dff"/><stop offset="1" stop-color="#0752d5"/></linearGradient>
+    <linearGradient id="gold" x2="1" y2="1"><stop stop-color="#ffe7a1"/><stop offset="1" stop-color="#d99c32"/></linearGradient>
+    <linearGradient id="fold" x2="1" y2="1"><stop stop-color="#eafaff"/><stop offset="1" stop-color="#82dfff"/></linearGradient>
   </defs>
-
-  <rect width="512" height="512" rx="112" fill="url(#tile)"/>
-
-  <!-- Tablet, slightly turned, with a soft shadow. -->
-  <g transform="rotate(-6 256 248)">
-    <rect x="118" y="92" width="276" height="318" rx="46" fill="#000" opacity="0.28" transform="translate(10 14)"/>
-    <rect x="118" y="92" width="276" height="318" rx="46" fill="url(#clay)"/>
-    <rect x="132" y="106" width="248" height="290" rx="36" fill="none" stroke="#C99A62" stroke-width="4" opacity="0.7"/>
-
-    <!-- Three lines of marks. -->
-    <use href="#wedge" transform="translate(160 164)"/>
-    <use href="#down" transform="translate(236 146)"/>
-    <use href="#wedge" transform="translate(262 164)"/>
-    <use href="#wedge" transform="translate(320 164) scale(0.8)"/>
-
-    <use href="#down" transform="translate(172 214)"/>
-    <use href="#wedge" transform="translate(196 232)"/>
-    <use href="#wedge" transform="translate(258 232) scale(0.8)"/>
-    <use href="#down" transform="translate(328 214)"/>
-
-    <use href="#wedge" transform="translate(160 300)"/>
-    <use href="#wedge" transform="translate(222 300) scale(0.8)"/>
-    <use href="#down" transform="translate(286 282)"/>
-  </g>
-
-  <!-- Reed stylus across the lower right, its cut tip touching the last line. -->
-  <g transform="rotate(-38 360 380)">
-    <rect x="300" y="362" width="170" height="30" rx="15" fill="#000" opacity="0.25" transform="translate(6 10)"/>
-    <rect x="300" y="362" width="170" height="30" rx="15" fill="url(#reed)"/>
-    <path d="M300 362 L262 377 L300 392 Z" fill="#B07A22"/>
-    <rect x="352" y="362" width="5" height="30" fill="#9C6A1C" opacity="0.6"/>
-    <rect x="410" y="362" width="5" height="30" fill="#9C6A1C" opacity="0.6"/>
-  </g>
+  <rect width="512" height="512" rx="112" fill="url(#navy)"/>
+  <rect x="1" y="1" width="510" height="510" rx="111" fill="none" stroke="#4b8be0" stroke-opacity=".25" stroke-width="2"/>
+  <path d="M138 93H315L390 168V408Q390 432 366 432H138Q114 432 114 408V117Q114 93 138 93Z" fill="#020c20" opacity=".4"/>
+  <path d="M138 80H310L384 154V395Q384 420 359 420H138Q112 420 112 394V106Q112 80 138 80Z" fill="url(#blue)"/>
+  <path d="M310 80V133Q310 154 331 154H384Z" fill="url(#fold)"/>
+  <path d="M310 133Q310 154 331 154H384L310 197Z" fill="#0047a9" opacity=".35"/>
+  <path d="M145 126H268M145 155H225M145 212H319M145 249H284M145 286H243M145 323H202" fill="none" stroke="#c9f1ff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M225 382L245 322L372 194Q388 179 404 196L419 211Q435 227 419 243L291 370Z" fill="#04172f" opacity=".35"/>
+  <path d="M215 372L235 312L362 184Q378 169 394 186L409 201Q425 217 409 233L281 360Z" fill="url(#gold)"/>
+  <path d="M235 312L281 360L215 372Z" fill="#fff0bf"/>
+  <path d="M215 372L226 340L247 361Z" fill="#17334f"/>
+  <path d="M349 197L396 244" stroke="#7f551a" stroke-width="8"/>
 </svg>

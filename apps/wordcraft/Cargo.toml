@@ -84,6 +84,4 @@ pollster = "1"
 arboard = { workspace = true, features = ["image-data"] }
 # The control server's random key.
 getrandom = "0.3"
-
-[target.'cfg(windows)'.dependencies]
-craft-update = { workspace = true }
+# Loads FLUX.2 klein when the desktop app opens, if the files are already on disk.

@@ -44,6 +44,9 @@ public sealed class Document
     }
 
     public Paragraphs Paragraphs => Content.Paragraphs;
+    public ContentControls ContentControls => new(this);
+    public ContentControls SelectContentControlsByTag(string Tag) => new(this, tag: Tag);
+    public ContentControls SelectContentControlsByTitle(string Title) => new(this, title: Title);
 
     public object TrackRevisions
     {

@@ -483,6 +483,7 @@ fn widow_control_moves_a_three_line_paragraph_whole() {
         for (fill, shift) in (30usize..60).flat_map(|f| (0..15).step_by(2).map(move |s| (f, s))) {
             let filler = "Filler line.\n".repeat(fill);
             let mut d = Document::from_text(&format!("{filler}{}\nAfter.", "word ".repeat(words)));
+            // Pin the portable regression fixture to the bundled face.
             d.styles.default_chr.font = Some("Source Sans 3".into());
             d.format_paragraphs(&Pos::body(0, 0), &Pos::body(0, 0), &|p| p.space_before = Some(shift as f32)).unwrap();
             let l = lay(&d);
@@ -582,8 +583,10 @@ fn a_page_ends_when_a_multiple_spaced_lines_text_no_longer_fits() {
     for multiple in [1.15, 1.5, 2.0] {
         let mut past_margin = 0;
         for shift in (0..28).step_by(2) {
-            // Keep the fixture longer than one page with every supported fallback font.
             let mut d = Document::from_text(&"Several words wrap onto many lines of a long paragraph. ".repeat(120));
+            // Pin the portable regression fixture to the bundled face.
+            d.styles.default_chr.font = Some("Source Sans 3".into());
+            d.styles.default_chr.size = Some(12.0);
             if let Some(wordcraft_doc::Block::Para(p)) = d.body.get_mut(0).map(Arc::make_mut) {
                 p.props.line_spacing = Some(LineSpacing::Multiple(multiple));
                 p.props.space_before = Some(shift as f32);

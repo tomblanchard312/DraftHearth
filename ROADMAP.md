@@ -1,5 +1,18 @@
 # WordCraft roadmap
 
+> **Integration update: 2026-10-29** · Combined local product branding, Enki and file-picker changes with the synchronized upstream code. Existing settings and installation identities are retained. Readiness estimates are unchanged.
+
+> **Naming update: 2026-10-29** · Nisaba is now DraftHearth. Existing user data, installation identities and automation interfaces are retained; readiness estimates are unchanged.
+
+> **File picker update: 2026-10-28** · Desktop Open, Save and assistant model selection prefer Ninimma 0.1.4 or later when installed, with native/built-in fallback. The web model-file control remains desktop-only. Platform acceptance is unchanged.
+
+> **Image generation update: 2026-10-28** · Enki supplies verified CPU/GPU recommendations (Z-Image-Turbo/Qwen), with a persistent busy panel, sampling progress, elapsed time and cancellation. Existing model versions remain selectable. Native Linux and headless UI checks are recorded in the local verification report; cross-platform acceptance is unchanged.
+
+
+> **Upstream integration:** 2026-10-28 · Merged WordCraft `c4fafc21` (179 commits since the previous shared point) as `0a873432`. Modular UI, engine, document, format, layout, font and PDF changes are integrated; DraftHearth branding, Scribe, VBA and packaging work were carried forward. Workspace check and focused regressions passed; the full UI suite was interrupted and native MSI packaging was unavailable. See [integration evidence](docs/upstream-sync.md).
+
+> **Status update:** 2026-10-28 · Scribe and Developer chat and completion go through the Enki daemon, with verified model downloads; Developer has a VBA project explorer, source editor, document designer, contextual local chat and separate Phi-4 completion. Readiness estimates unchanged.
+
 > **Highlight update:** 2026-10-25 · Highlight shortcut toggles the last chosen colour off when the whole selection has it; explicit colour commands remain setters (#4085). Readiness estimates unchanged.
 
 **Stage: alpha** · next: beta, ~15 points (60% → 75% ready for real work) and ~150–230 h away
@@ -139,6 +152,28 @@ Ranked, to beta (detail and remaining milestones in [docs/roadmap.md](docs/roadm
    (20–30 h).
 
 ## Progress log
+
+- 2026-10-26: Embedded Scribe’s approved blue S/reed-tip icon in the Review ribbon and assistant pane, with attribution and light/dark visual checks. Readiness estimates unchanged.
+
+- 2026-10-26: Cleared the four inherited font/layout failures by correcting environment-dependent tests. Thai rendering stays enabled; all eight CI gates pass (4,623 workspace tests). Readiness estimates unchanged.
+
+- 2026-10-26: Integrated upstream `438775ce` with native document windows and egui 0.37; Scribe/VBA pane and buffer regressions pass. Four confirmed pre-existing font/layout failures remain open; readiness estimates unchanged.
+
+- 2026-10-26: Owner accepted the current VBA checkpoint; Scribe is the priority. Guarded stale and incomplete suggestions, refused oversized selections, added concise caret continuation and grouped model setup in Settings. Real grammar, shortening and tracked-change review checks passed; broader writing-quality evaluation remains open. Readiness estimates unchanged.
+
+- 2026-10-26: VBA now reads and edits existing body form controls through ContentControls and title/tag selectors, with ID/document guards. Embedded DOCM execution and save/reopen validated; control events and GUI execution remain open. Readiness estimates unchanged.
+
+- 2026-10-26: Real local chat/completion tests inserted, compiled and executed generated VBA with exact saved-text assertions. Chat context now separates document text from module metadata; readiness estimates unchanged.
+
+- 2026-10-25: Designer exposes the existing form controls toolbox with drag/drop page insertion, Design Mode and control properties; a pointer-drag regression covers undo and DOCX/DOCM preservation.
+
+- 2026-10-25: VBA workspace adds grouped module/source navigation, a live document designer/toolbox and local document-aware chat with reviewed code insertion. Phi-4 remains the Code completion action; UserForm design and GUI execution remain open.
+
+- 2026-10-25: Prioritized clean-room `.docx`/`.docm` compatibility; Python deferred. Added synthetic repeated-save checks for Unicode document edits, opaque VBA-related parts, and macro-free `.docx` exports. Native Word acceptance remains open.
+
+- 2026-10-25: Developer › Code Editor opens VBA source beside the document, with module editing/export, syntax colors, local Phi-4 completion and live paragraph selection/formatting. .bas/.docm source saving supported; GUI macro execution remains open.
+
+- 2026-10-25: Scribe runs GGUF models directly in DraftHearth on the CPU, with local model selection and streamed suggestions applied as tracked changes.
 
 - 2026-10-22: View › Window › New Window opens a second window on the document (desktop). The windows are titled `Name:1` and `Name:2` and each keeps its own caret, scroll position, zoom and view; edits and Undo are the document's and show in both. Closing one of them asks nothing; the last one asks about unsaved changes, and quitting asks once per document.
 - 2026-10-22: One native window per open document on the desktop. File › New and Open (from the ribbon, File, shortcuts, the file manager, the command line or the control channel) open the document in a window of its own, focused and placed a step below and right of the last one; opening a file replaces a blank document nobody has used in its own window, and a file that is already open brings its window to the front. Each window keeps its own ribbon tab, File page, dialogs, panes, scroll position and composition. View › Window › Switch Windows lists the windows and brings the chosen one forward. File › Close and a window's close button close that window, asking about unsaved changes first; the last window stays open with no document. Quitting asks about each document with unsaved changes in its own window, and Cancel keeps everything open. The control channel's input and screenshots go to the window focused last. The web app keeps one window.
@@ -639,6 +674,14 @@ Imported Word 97–2003 `.doc`/`.dot` files now ask for a supported DOCX target 
 Footer page-table height and body wrapping are corrected. Other pagination gaps remain open.
 
 ## Revision history
+
+> 2026-10-26: Scribe uses its approved original blue S/reed-tip artwork in the Review ribbon and pane; embedded locally, attributed and checked in light/dark headless renders. Readiness estimates unchanged.
+
+> 2026-10-26: Corrected host-font and pagination fixture assumptions without disabling Thai or adding test skips; all eight CI gates pass. Product parity estimates remain unchanged.
+
+> 2026-10-25 · Added Developer’s VBA source workbench, syntax colors, local Phi-4 completion and live body-node inspection; .bas/.docm source saving supported; GUI macro execution remains open.
+
+> 2026-10-25 · Scribe: replaced the daemon requirement with in-process CPU inference; local model selection, streaming, cancellation and tracked changes retained.
 
 > 2026-10-23 · cu20we review follow-up: Only paragraph-relative box floats use the pre-spacing origin. Line-relative floats and page/margin fallbacks in cells and text boxes keep the text-top origin. Synthetic controls compare zero and 24 pt space-before across all four box contexts. New cap conversion helpers and regression tests document their contracts; readiness estimates unchanged.
 

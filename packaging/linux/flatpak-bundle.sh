@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Repackage a Nisaba Linux tarball as a single-file Flatpak bundle:
+# Repackage a DraftHearth Linux tarball as a single-file Flatpak bundle:
 #
 #   $DIST/nisaba-<version>-linux-<arch>.flatpak
 #
@@ -43,13 +43,15 @@ for tool in flatpak flatpak-builder; do
   command -v "$tool" >/dev/null || { echo "error: $tool not found (apt install flatpak flatpak-builder librsvg2-common)" >&2; exit 1; }
 done
 
-echo "==> Nisaba $VERSION Flatpak bundle for $ARCH from $(basename "$TARBALL")"
+echo "==> DraftHearth $VERSION Flatpak bundle for $ARCH from $(basename "$TARBALL")"
 
 WORK="$CARGO_TARGET_DIR/flatpak-bundle"
 rm -rf "$WORK"
 mkdir -p "$WORK/stage"
 tar -xzf "$TARBALL" -C "$WORK/stage" --strip-components=1
 [[ -x "$WORK/stage/bin/nisaba" ]] || { echo "error: $TARBALL has no bin/nisaba" >&2; exit 1; }
+[[ -x "$WORK/stage/bin/nisaba-launch" ]] || { echo "error: $TARBALL has no bin/nisaba-launch" >&2; exit 1; }
+[[ -x "$WORK/stage/lib/nisaba/enki-payload/sharedai-daemon" ]] || { echo "error: $TARBALL has no Enki payload" >&2; exit 1; }
 cp "$HERE/flatpak/$APP_ID.bundle.yml" "$WORK/$APP_ID.yml"
 
 flatpak remote-add --user --if-not-exists flathub "$FLATHUB"

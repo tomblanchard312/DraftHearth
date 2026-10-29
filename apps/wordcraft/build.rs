@@ -14,8 +14,8 @@ fn main() {
     }
     let mut res = winresource::WindowsResource::new();
     res.set_icon("../../assets/app-icon/wordcraft.ico")
-        .set("ProductName", "Nisaba")
-        .set("FileDescription", "Nisaba word processor (based on WordCraft)")
+        .set("ProductName", "DraftHearth")
+        .set("FileDescription", "DraftHearth word processor (based on WordCraft)")
         .set("CompanyName", "Tom Blanchard")
         .set("LegalCopyright", "Copyright (c) the WordCraft authors and Tom Blanchard. MIT OR Apache-2.0.")
         .set("OriginalFilename", "nisaba.exe")

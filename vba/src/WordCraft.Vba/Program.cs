@@ -31,6 +31,24 @@ var verb = args[0];
 var files = args.Skip(1).TakeWhile(a => !a.StartsWith("--")).ToList();
 string? Opt(string name) { int i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
 static bool IsDocument(string f) => Path.GetExtension(f).ToLowerInvariant() is ".docm" or ".dotm" or ".doc" or ".dot" or ".bin";
+// The editor supplies bounded JSON and a binary snapshot; this path never runs a macro.
+if (verb == "update-project")
+{
+    var input = files.Single();
+    if (new FileInfo(input).Length > 32 * 1024 * 1024) throw new InvalidOperationException("Editor request is too large.");
+    using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(input));
+    var root = json.RootElement;
+    var original = Convert.FromBase64String(root.GetProperty("original").GetString() ?? "");
+    if (original.Length > 16 * 1024 * 1024) throw new InvalidOperationException("VBA project is too large.");
+    var edited = root.GetProperty("modules").EnumerateArray().Select(m => new VbaModule(
+        m.GetProperty("name").GetString() ?? "Module",
+        Enum.Parse<VbaModuleKind>(m.GetProperty("kind").GetString() ?? "Standard"),
+        m.GetProperty("source").GetString() ?? "")).ToList();
+    var updated = WordCraft.Vba.Ole.VbaProjectEditor.Update(original, edited);
+    Console.WriteLine(Convert.ToBase64String(updated));
+    return 0;
+}
+
 var modules = files.SelectMany(f => IsDocument(f) ? WordCraft.Vba.Ole.VbaProjectReader.ReadFile(f) : [VbaModule.FromFile(f)]).ToList();
 var docFile = files.FirstOrDefault(f => IsDocument(f) && !f.EndsWith(".bin", StringComparison.OrdinalIgnoreCase));
 
@@ -44,6 +62,12 @@ switch (verb)
         Console.WriteLine($"wrote {output} ({modules.Count} modules)");
         return 0;
     }
+
+    case "modules-json":
+        if (modules.Count > 256 || modules.Sum(m => (long)m.Source.Length) > 2 * 1024 * 1024)
+            throw new InvalidOperationException("VBA sources exceed the editor limit.");
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(modules.Select(m => new { name = m.Name, kind = m.Kind.ToString(), source = m.Source })));
+        return 0;
 
     case "list":
         foreach (var m in modules)

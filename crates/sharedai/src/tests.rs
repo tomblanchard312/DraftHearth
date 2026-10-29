@@ -149,6 +149,27 @@ fn a_missing_daemon_says_so() {
 }
 
 #[test]
+fn the_newer_shared_enki_is_chosen() {
+    let dir = std::env::temp_dir().join(format!("nisaba-enki-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    let old = dir.join("old");
+    let new = dir.join("new");
+    std::fs::create_dir_all(&old).unwrap();
+    std::fs::create_dir_all(&new).unwrap();
+    std::fs::write(old.join("sharedai-daemon"), b"old").unwrap();
+    std::fs::write(new.join("sharedai-daemon"), b"new").unwrap();
+    std::fs::write(old.join("VERSION"), b"0.1.0 10\n").unwrap();
+    std::fs::write(new.join("VERSION"), b"0.2.0 1\n").unwrap();
+    let paths = vec![old.join("sharedai-daemon"), new.join("sharedai-daemon")];
+    let chosen = newest_daemon(&paths).unwrap();
+    assert_eq!(chosen, new.join("sharedai-daemon"));
+    std::fs::write(new.join("VERSION"), b"0.1.0 10\n").unwrap();
+    let tied = newest_daemon(&paths).unwrap();
+    assert_eq!(tied, old.join("sharedai-daemon"));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn the_daemon_is_looked_for_in_the_private_helper_folder_first() {
     let c = daemon_candidates(Some(std::path::Path::new("/usr/bin/nisaba")), Some(std::ffi::OsStr::new("/opt/x:/usr/local/bin")));
     let c: Vec<String> = c.iter().map(|p| p.display().to_string()).collect();

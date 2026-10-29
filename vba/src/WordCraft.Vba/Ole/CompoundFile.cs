@@ -11,6 +11,7 @@ public sealed class CfbEntry
     public required string Name { get; init; }
     public required bool IsStorage { get; init; }
     public List<CfbEntry> Children { get; } = [];
+    internal byte[] Metadata { get; init; } = new byte[36];
     internal uint StartSector { get; init; }
     internal long Size { get; init; }
 
@@ -104,7 +105,7 @@ public sealed class CompoundFileReader
 
     public byte[] Read(string path) => Read(Find(path) ?? throw new CompoundFileException($"No stream {path}."));
 
-    readonly record struct RawEntry(string Name, byte Type, uint Left, uint Right, uint Child, uint Start, long Size);
+    readonly record struct RawEntry(string Name, byte Type, uint Left, uint Right, uint Child, uint Start, long Size, byte[] Metadata);
 
     List<RawEntry> ParseDirectory(byte[] dir)
     {
@@ -118,7 +119,7 @@ public sealed class CompoundFileReader
             long size = v3 ? BinaryPrimitives.ReadUInt32LittleEndian(e[120..]) : (long)BinaryPrimitives.ReadUInt64LittleEndian(e[120..]);
             list.Add(new RawEntry(name, e[66],
                 BinaryPrimitives.ReadUInt32LittleEndian(e[68..]), BinaryPrimitives.ReadUInt32LittleEndian(e[72..]),
-                BinaryPrimitives.ReadUInt32LittleEndian(e[76..]), BinaryPrimitives.ReadUInt32LittleEndian(e[116..]), size));
+                BinaryPrimitives.ReadUInt32LittleEndian(e[76..]), BinaryPrimitives.ReadUInt32LittleEndian(e[116..]), size, e[80..116].ToArray()));
         }
         return list;
     }
@@ -127,7 +128,7 @@ public sealed class CompoundFileReader
     {
         if (depth > 64) throw new CompoundFileException("Directory too deep.");
         var raw = entries[index];
-        var entry = new CfbEntry { Name = raw.Name, IsStorage = raw.Type is 1 or 5, StartSector = raw.Start, Size = raw.Size };
+        var entry = new CfbEntry { Name = raw.Name, IsStorage = raw.Type is 1 or 5, StartSector = raw.Start, Size = raw.Size, Metadata = raw.Metadata };
         if (!entry.IsStorage || raw.Child == NoStream) return entry;
         // The children of a storage form a tree through left/right sibling links.
         var seen = new HashSet<uint>();
@@ -209,6 +210,7 @@ public sealed class CompoundFileWriter
         public string Name { get; } = name;
         public byte[]? Data { get; } = data; // null for a storage
         public List<Node> Children { get; } = [];
+        public byte[] Metadata = new byte[36];
         public int Id;
         public uint Start = EndOfChain;
         public uint Left = NoStream, Right = NoStream, Child = NoStream;
@@ -247,8 +249,22 @@ public sealed class CompoundFileWriter
 
     readonly Node _root = new("Root Entry", null);
 
+    public CompoundFileWriter(CfbEntry? root = null) { if (root is not null) _root.Metadata = root.Metadata; }
+
+    public void AddStorage(string path, CfbEntry? metadata = null)
+    {
+        var node = _root;
+        foreach (var part in path.Split('/', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var next = node.Children.FirstOrDefault(c => c.Data is null && c.Name.Equals(part, StringComparison.OrdinalIgnoreCase));
+            if (next is null) { next = new Node(part, null); node.Children.Add(next); }
+            node = next;
+        }
+        if (metadata is not null) node.Metadata = metadata.Metadata;
+    }
+
     /// <summary>Adds a stream at a path like "VBA/dir"; storages along the way are created.</summary>
-    public void AddStream(string path, byte[] data)
+    public void AddStream(string path, byte[] data, CfbEntry? metadata = null)
     {
         var parts = path.Split('/');
         var node = _root;
@@ -258,7 +274,7 @@ public sealed class CompoundFileWriter
             if (next is null) { next = new Node(storage, null); node.Children.Add(next); }
             node = next;
         }
-        node.Children.Add(new Node(parts[^1], data));
+        node.Children.Add(new Node(parts[^1], data) { Metadata = metadata?.Metadata ?? new byte[36] });
     }
 
     public byte[] ToArray()
@@ -354,6 +370,7 @@ public sealed class CompoundFileWriter
         BinaryPrimitives.WriteUInt32LittleEndian(e[68..], n.Left);
         BinaryPrimitives.WriteUInt32LittleEndian(e[72..], n.Right);
         BinaryPrimitives.WriteUInt32LittleEndian(e[76..], n.Child);
+        n.Metadata.AsSpan().CopyTo(e[80..116]);
         BinaryPrimitives.WriteUInt32LittleEndian(e[116..], n.Start);
         uint size = n.Data is null ? (n.Id == 0 ? (uint)miniLength : 0) : (uint)n.Data.Length;
         BinaryPrimitives.WriteUInt32LittleEndian(e[120..], size);

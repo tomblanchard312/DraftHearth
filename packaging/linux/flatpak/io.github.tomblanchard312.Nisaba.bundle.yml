@@ -17,6 +17,8 @@ runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 command: wordcraft
 finish-args:
+  # On-demand Hugging Face model downloads.
+  - --share=network
   # Display: Wayland first; X11 only when no Wayland compositor is running.
   - --socket=wayland
   - --socket=fallback-x11
@@ -30,16 +32,25 @@ finish-args:
   # line, Open Recent, "Save" next to the original) work in the usual places.
   - --filesystem=xdg-documents
   - --filesystem=xdg-pictures
-  # Network: update checks reach GitHub. Shared host network namespace, so the optional
-  # --control server's 127.0.0.1 listener is reachable from the host as well.
-  - --share=network
-  # Deliberately not granted: home/host filesystem access.
+  # Models downloaded or added by the user, matching the native per-user model folder.
+  - --filesystem=xdg-data/nisaba
+  # Shared Enki on the host. The launcher installs or updates it and uses its socket.
+  # A newer Enki already installed is left as it is.
+  - --filesystem=xdg-data/enki:create
+  - --filesystem=xdg-data/SharedAI:create
+  - --filesystem=xdg-run/sharedai:create
+  - --filesystem=/usr/lib/enki:ro
+  - --talk-name=org.freedesktop.Flatpak
+  # Home/host filesystem access remains restricted.
+
 modules:
   - name: wordcraft
     buildsystem: simple
     build-commands:
-      - install -Dm755 bin/wordcraft /app/bin/wordcraft
-      - install -Dm755 bin/wordcraft-cli /app/bin/wordcraft-cli
+      - install -Dm755 bin/nisaba /app/bin/nisaba-bin
+      - install -Dm755 bin/nisaba-launch /app/bin/nisaba
+      - mkdir -p /app/lib/enki-payload && cp -a lib/nisaba/enki-payload/. /app/lib/enki-payload/
+      - install -Dm755 bin/nisaba-cli /app/bin/nisaba-cli
       - install -Dm644 share/applications/io.github.tomblanchard312.Nisaba.desktop /app/share/applications/io.github.tomblanchard312.Nisaba.desktop
       - install -Dm644 share/mime/packages/io.github.tomblanchard312.Nisaba.xml /app/share/mime/packages/io.github.tomblanchard312.Nisaba.xml
       # Already has the release's version and date substituted by package.sh.

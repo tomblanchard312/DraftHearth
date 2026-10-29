@@ -53,6 +53,7 @@ pub enum Pane {
     Styles,
     StyleInspector,
     Accessibility,
+    VbaEditor,
     Assistant,
     AltText,
     FormatShape,
@@ -69,6 +70,7 @@ impl Pane {
             Self::Styles => "Styles",
             Self::StyleInspector => "Style Inspector",
             Self::Accessibility => "Accessibility",
+            Self::VbaEditor => "Code Editor",
             Self::Assistant => wordcraft_brand::ASSISTANT_NAME,
             Self::AltText => "Alt Text",
             Self::FormatShape => "Format Shape",
@@ -85,6 +87,7 @@ impl Pane {
             Self::Styles => (Edge::End, 250.0),
             Self::StyleInspector => (Edge::End, 240.0),
             Self::Accessibility => (Edge::End, 280.0),
+            Self::VbaEditor => (Edge::End, 820.0),
             Self::Assistant => (Edge::End, 300.0),
             Self::AltText => (Edge::End, 260.0),
             Self::FormatShape => (Edge::End, 280.0),
@@ -103,6 +106,7 @@ impl Pane {
             Self::Styles => "styles",
             Self::StyleInspector => "styleInspector",
             Self::Accessibility => "accessibility",
+            Self::VbaEditor => "vbaEditor",
             Self::Assistant => "assistant",
             Self::AltText => "altText",
             Self::FormatShape => "formatShape",
@@ -111,13 +115,14 @@ impl Pane {
         }
     }
 
-    const ALL: [Self; 11] = [
+    const ALL: [Self; 12] = [
         Self::SmartArtText,
         Self::Navigation,
         Self::Clipboard,
         Self::Styles,
         Self::StyleInspector,
         Self::Accessibility,
+        Self::VbaEditor,
         Self::Assistant,
         Self::AltText,
         Self::FormatShape,
@@ -138,6 +143,7 @@ impl Pane {
             Self::Styles => Some("view.stylesPane"),
             Self::StyleInspector => Some("styles.inspector"),
             Self::Accessibility => Some("view.accessibilityPane"),
+            Self::VbaEditor => Some("vba.editor"),
             Self::Assistant => Some("view.assistantPane"),
             Self::AltText => Some("view.altTextPane"),
             Self::FormatShape => Some("view.formatShapePane"),
@@ -161,6 +167,7 @@ impl PaneContent<Pane> for Content<'_> {
             Pane::Styles => styles(app, ui),
             Pane::StyleInspector => inspector(app, ui),
             Pane::Accessibility => crate::a11y_pane::accessibility(app, ui),
+            Pane::VbaEditor => crate::vba_editor::pane(app, ui),
             Pane::Assistant => crate::assistant_pane::pane(app, ui),
             Pane::AltText => crate::a11y_pane::alt_text(app, ui),
             Pane::FormatShape => {

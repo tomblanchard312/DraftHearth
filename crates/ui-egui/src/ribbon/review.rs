@@ -3,6 +3,10 @@ use super::language::language_menu;
 use super::{Ui, WordApp, big, big_toggle, group, json, menu_button, small};
 
 pub(super) fn review(app: &mut WordApp, ui: &mut Ui) {
+    group(ui, wordcraft_brand::ASSISTANT_NAME, None, app, |ui, app| {
+        let shown = app.session.view.assistant_pane;
+        big(ui, app, "assistant", wordcraft_brand::ASSISTANT_NAME, "view.assistantPane", json!({"value": !shown}), false);
+    });
     group(ui, "Proofing", None, app, |ui, app| {
         big(ui, app, "spelling", "Spelling &\nGrammar", "review.spelling", json!({}), false);
         stack(ui, |ui| {
@@ -172,6 +176,10 @@ pub(super) fn developer(app: &mut WordApp, ui: &mut Ui) {
                 crate::widgets::ButtonAction::new("developer.properties", json!({}), false),
             );
         });
+    });
+    group(ui, "VBA", None, app, |ui, app| {
+        let shown = app.session.view.vba_editor;
+        big(ui, app, "code", "Visual Basic", "vba.editor", json!({"value": !shown}), false);
     });
 }
 

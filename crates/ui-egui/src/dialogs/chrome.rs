@@ -71,6 +71,7 @@ fn count_dialog_frame(ctx: &egui::Context, id: egui::Id) {
 /// its body, keeps it open when it stays, and gives the Save Changes prompt the AccessKit
 /// alert-dialog role.
 pub fn show(app: &mut WordApp, ctx: &egui::Context) {
+    crate::image_gen::show(app, ctx);
     let Some(mut d) = app.dialog.take() else {
         ctx.data_mut(|d| d.remove::<(egui::Id, u8)>(dialog_top_key()));
         return;

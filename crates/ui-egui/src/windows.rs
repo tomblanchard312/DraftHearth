@@ -38,7 +38,7 @@ use crate::{WordApp, documents, window_ui::WindowUi};
 
 /// The window title for a document called `name`.
 pub(crate) fn title(name: &str, dirty: bool) -> String {
-    format!("{name}{} - WordCraft", if dirty { " •" } else { "" })
+    format!("{name}{} - {}", if dirty { " •" } else { "" }, wordcraft_brand::NAME)
 }
 
 /// An open window.

@@ -20,6 +20,8 @@
 //!
 //! [`Services::file_dialog`]: wordcraft_ui_egui::Services::file_dialog
 
+mod ninimma;
+
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -66,15 +68,19 @@ impl Launcher {
             let ctx = self.ctx.clone();
             let waiting = std::thread::Builder::new().name("file dialog".into()).spawn(move || {
                 // The pickers only start when first polled: without a system dialog they never do.
-                let picked = match no_system_dialog() {
-                    Some(reason) => Err(reason),
-                    None => {
-                        // Only the portal folds a failure into "cancelled" (#2999).
-                        #[cfg(all(unix, not(target_os = "macos")))]
-                        let picked = pick(picking, unparented, TOO_QUICK);
-                        #[cfg(not(all(unix, not(target_os = "macos"))))]
-                        let picked: Result<_, String> = Ok(pollster::block_on(picking));
-                        picked.map(|f| f.iter().map(|f| f.path().to_string_lossy().to_string()).collect())
+                let picked = if let Some(paths) = ninimma::pick(&req) {
+                    Ok(paths)
+                } else {
+                    match no_system_dialog() {
+                        Some(reason) => Err(reason),
+                        None => {
+                            // Only the portal folds a failure into "cancelled" (#2999).
+                            #[cfg(all(unix, not(target_os = "macos")))]
+                            let picked = pick(picking, unparented, TOO_QUICK);
+                            #[cfg(not(all(unix, not(target_os = "macos"))))]
+                            let picked: Result<_, String> = Ok(pollster::block_on(picking));
+                            picked.map(|f| f.iter().map(|f| f.path().to_string_lossy().to_string()).collect())
+                        }
                     }
                 };
                 let _ = answer.send(picked);

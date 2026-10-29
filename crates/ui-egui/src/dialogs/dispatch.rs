@@ -1086,14 +1086,19 @@ fn about_dialog(ui: &mut Ui, d: &mut Dialog) -> bool {
             ui.label(egui::RichText::new(wordcraft_brand::NAME).font(semibold(22.0)));
             let build = option_env!("WORDCRAFT_BUILD_SHA").map(|s| s.get(..8).unwrap_or(s)).unwrap_or(tl!("development build"));
             ui.label(crate::i18n::fmt(tl!("Version {version} ({build})"), &[("version", env!("CARGO_PKG_VERSION")), ("build", build)]));
-            ui.label(tl!("A free, open-source word processor written from scratch in Rust."));
-            ui.label(crate::i18n::fmt(tl!("Based on {project}."), &[("project", wordcraft_brand::UPSTREAM_NAME)]));
+            ui.label(crate::i18n::fmt(
+                tl!("{name} is a fork of {upstream}, a Rust word processor."),
+                &[("name", wordcraft_brand::NAME), ("upstream", wordcraft_brand::UPSTREAM_NAME)],
+            ));
             ui.add_space(6.0);
-            ui.hyperlink_to(wordcraft_brand::HOMEPAGE.trim_start_matches("https://"), wordcraft_brand::HOMEPAGE);
+            ui.hyperlink_to(crate::i18n::fmt(tl!("Source code: {url}"), &[("url", wordcraft_brand::HOMEPAGE)]), wordcraft_brand::HOMEPAGE);
             ui.hyperlink_to(tl!("Join us on Discord: discord.gg/artcraft"), "https://discord.gg/artcraft");
-            ui.hyperlink_to(tl!("Source code: github.com/storytold/wordcraft"), "https://github.com/storytold/wordcraft");
+            ui.hyperlink_to(
+                crate::i18n::fmt(tl!("Upstream source: {url}"), &[("url", wordcraft_brand::UPSTREAM_HOMEPAGE)]),
+                wordcraft_brand::UPSTREAM_HOMEPAGE,
+            );
             ui.add_space(6.0);
-            ui.label(egui::RichText::new(wordcraft_brand::COPYRIGHT).small().weak());
+            ui.label(egui::RichText::new(crate::i18n::fmt(tl!("{notice}"), &[("notice", wordcraft_brand::COPYRIGHT)])).small().weak());
         }
     }
     let (ok, cancel) = buttons(ui, tl!("Close"));

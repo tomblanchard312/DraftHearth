@@ -41,6 +41,7 @@ pub mod guides;
 pub mod i18n;
 pub mod ibeam;
 pub mod icons;
+mod image_gen;
 pub mod ink;
 pub mod keys;
 pub mod keytips;
@@ -65,6 +66,7 @@ pub mod table_resize;
 pub mod table_ruler;
 pub mod theme;
 pub mod updates_ui;
+pub mod vba_editor;
 pub mod widgets;
 pub mod window_close;
 pub mod window_geometry;
@@ -93,6 +95,8 @@ pub use dialogs::dialogs_smart_art;
 pub use dialogs::dialogs_table_style;
 pub use dialogs::dialogs_templates;
 pub use file_dialogs::{FileDialogAnswer, FileDialogRequest, open_filters};
+#[cfg(not(target_arch = "wasm32"))]
+pub use image_gen::warm_default_image_model;
 
 mod app;
 mod clock;
@@ -467,10 +471,14 @@ pub struct WordApp {
     pub colors: Option<colors::ColorsDialog>,
     /// The Restrict Editing pane (#412).
     pub restrict: dialogs_review::RestrictPane,
-    /// Review › Assistant: the SharedAI request in flight and its reply.
-    pub assistant: assistant_pane::State,
     pub status_msg: Option<(String, f64)>,
     pub previews: previews::Previews,
+    /// Scribe assistant conversation and local model state.
+    pub assistant: assistant_pane::State,
+    /// Image generation and inpainting state.
+    pub image_gen: image_gen::State,
+    /// VBA editor, modules, and assistant state.
+    pub vba: vba_editor::State,
     /// Media key of the picture a pending Change Picture replaces (#147).
     pub change_picture_target: Option<String>,
     /// Web: a recipient list was asked for (Select Recipients › Use an Existing List…), so the

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and package Nisaba for Linux (<arch> is x86_64 or aarch64, or riscv64 when cross-compiling):
+# Build and package DraftHearth for Linux (<arch> is x86_64 or aarch64, or riscv64 when cross-compiling):
 #
 #   $DIST/wordcraft-<version>-linux-<arch>.AppImage  any distro with glibc >= the build host's
 #   $DIST/wordcraft-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
@@ -8,6 +8,11 @@
 #   $DIST/wordcraft-<version>-linux-<arch>.tar.gz    plain FHS-style tree (bin/, share/)
 #
 # Usage: packaging/linux/package.sh [--skip-build] [--formats "appimage deb rpm tar"]
+#
+# The package also carries Enki (sharedai-daemon, sharedai-worker, sharedai-sd). Installing it
+# puts that Enki in /usr/lib/enki when it is missing or newer than the one already there.
+# Set ENKI_ROOT if the Enki checkout is not the sibling ../Enki directory. ENKI_BIN_DIR
+# skips rebuilding Enki and uses that directory of binaries instead.
 #
 # Needs: cargo; nfpm for deb/rpm (https://nfpm.goreleaser.com); appimagetool for the AppImage
 # (downloaded into $CARGO_TARGET_DIR if missing). Build on an old distro (CI: Ubuntu 22.04,
@@ -40,7 +45,7 @@ esac
 export WORDCRAFT_MAINTAINER="${WORDCRAFT_MAINTAINER:-Nisaba maintainers <wordcraft@storyteller.ai>}"
 BASENAME="wordcraft-$VERSION-linux-$ARCH"
 
-echo "==> Nisaba $VERSION for Linux $ARCH ($FORMATS)"
+echo "==> DraftHearth $VERSION for Linux $ARCH ($FORMATS)"
 
 if [[ "$SKIP_BUILD" = 0 ]]; then
   if [[ -n "${CROSS_TARGET:-}" ]]; then
@@ -55,9 +60,9 @@ STAGE="$WORK/root"
 rm -rf "$WORK"
 
 # ---- stage an FHS tree (shared by every format) -------------------------------------------------
-install -Dm755 "$BIN/wordcraft" "$STAGE/usr/bin/wordcraft"
-install -Dm755 "$BIN/wordcraft-cli" "$STAGE/usr/bin/wordcraft-cli"
-"${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/wordcraft" "$STAGE/usr/bin/wordcraft-cli" 2>/dev/null || true
+install -Dm755 "$BIN/wordcraft" "$STAGE/usr/bin/nisaba"
+install -Dm755 "$BIN/wordcraft-cli" "$STAGE/usr/bin/nisaba-cli"
+"${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/nisaba" "$STAGE/usr/bin/nisaba-cli" 2>/dev/null || true
 install -Dm644 "$HERE/$APP_ID.desktop" "$STAGE/usr/share/applications/$APP_ID.desktop"
 install -Dm644 "$HERE/$APP_ID.mime.xml" "$STAGE/usr/share/mime/packages/$APP_ID.xml"
 mkdir -p "$STAGE/usr/share/metainfo"
@@ -65,8 +70,18 @@ sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$WORDCRAFT_BUILD_DATE/g" \
   "$HERE/$APP_ID.metainfo.xml.in" >"$STAGE/usr/share/metainfo/$APP_ID.metainfo.xml"
 mkdir -p "$STAGE/usr/share/icons"
 cp -R "$ROOT/assets/app-icon/hicolor" "$STAGE/usr/share/icons/"
-mkdir -p "$STAGE/usr/share/doc/wordcraft"
-copy_docs "$STAGE/usr/share/doc/wordcraft"
+mkdir -p "$STAGE/usr/share/doc/nisaba"
+copy_docs "$STAGE/usr/share/doc/nisaba"
+if [[ -z "${ENKI_ROOT:-}" && -f "$ROOT/../Enki/packaging/stage-enki.sh" ]]; then
+  ENKI_ROOT=$(CDPATH= cd -- "$ROOT/../Enki" && pwd)
+fi
+if [[ ! -f "${ENKI_ROOT:-}/packaging/stage-enki.sh" ]]; then
+  echo "error: Enki checkout not found. Set ENKI_ROOT so the package can install Enki." >&2
+  exit 1
+fi
+# shellcheck disable=SC1091
+. "$ENKI_ROOT/packaging/stage-enki.sh"
+stage_shared_enki nisaba "$HERE/enki-flatpak-launch.sh"
 
 if command -v desktop-file-validate >/dev/null; then
   desktop-file-validate "$STAGE/usr/share/applications/$APP_ID.desktop"
@@ -131,7 +146,7 @@ if has appimage; then
   }
   APPDIR="$WORK/Nisaba.AppDir"
   cp -R "$STAGE" "$APPDIR"
-  ln -s usr/bin/wordcraft "$APPDIR/AppRun"
+  write_enki_apprun "$APPDIR" nisaba nisaba
   cp "$HERE/$APP_ID.desktop" "$APPDIR/$APP_ID.desktop"
   cp "$ROOT/assets/app-icon/hicolor/256x256/apps/$APP_ID.png" "$APPDIR/$APP_ID.png"
   ln -s "$APP_ID.png" "$APPDIR/.DirIcon"

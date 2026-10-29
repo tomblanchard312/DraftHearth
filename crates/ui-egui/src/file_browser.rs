@@ -52,8 +52,7 @@ pub(crate) fn matches(path: &Path, exts: &[String]) -> bool {
 }
 
 /// The subfolders and the files with one of `exts` in `dir`, at most `cap` of them, folders first
-/// and each by name. Hidden entries (a leading dot) are left out; entries that can't be read are
-/// skipped.
+/// and each by name. Entries that can't be read are skipped.
 pub(crate) fn list_dir(dir: &Path, exts: &[String], cap: usize) -> std::io::Result<Listing> {
     let mut listing = Listing::default();
     for (i, item) in std::fs::read_dir(dir)?.enumerate() {
@@ -63,9 +62,6 @@ pub(crate) fn list_dir(dir: &Path, exts: &[String], cap: usize) -> std::io::Resu
         }
         let Ok(item) = item else { continue };
         let name = item.file_name().to_string_lossy().into_owned();
-        if name.starts_with('.') {
-            continue;
-        }
         let path = item.path();
         // A symbolic link to a folder is a folder.
         let is_dir = match item.file_type() {
@@ -264,7 +260,12 @@ impl WordApp {
             FileDialogRequest::Save { dir: Some(d), .. } => Some(PathBuf::from(d)).filter(|d| d.is_dir()),
             _ => None,
         };
+        let model_dir = matches!(&req, FileDialogRequest::Open { purpose } if purpose == "model")
+            .then(crate::assistant_pane::models_dir)
+            .flatten()
+            .filter(|d| d.is_dir());
         let start = asked
+            .or(model_dir)
             .or_else(|| self.file_browser.last_dir.clone().filter(|d| d.is_dir()))
             .or_else(|| self.session.path.as_ref().and_then(|p| p.parent()).map(Path::to_path_buf).filter(|d| d.is_dir()))
             .or_else(home)
@@ -505,8 +506,8 @@ mod tests {
         e.iter().map(|x| x.to_string()).collect()
     }
 
-    /// Folders come first, then the files of the chosen type (any case), each by name; hidden
-    /// entries and other types are left out, and a big folder is cut off and says so.
+    /// Folders come first, then the files of the chosen type (any case), each by name; other
+    /// file types are left out, and a big folder is cut off and says so.
     #[test]
     fn listing_filters_sorts_and_caps() {
         let dir = scratch("list");
@@ -517,9 +518,9 @@ mod tests {
         std::fs::create_dir(dir.join(".git")).unwrap();
         let l = list_dir(&dir, &exts(&["docx"]), 100).unwrap();
         let names: Vec<&str> = l.entries.iter().map(|e| e.name.as_str()).collect();
-        assert_eq!(names, ["zeta", "A.DOCX", "b.docx", "c.docx"]);
+        assert_eq!(names, [".git", "zeta", ".hidden.docx", "A.DOCX", "b.docx", "c.docx"]);
         assert!(!l.truncated);
-        assert_eq!(list_dir(&dir, &exts(&["*"]), 100).unwrap().entries.len(), 5);
+        assert_eq!(list_dir(&dir, &exts(&["*"]), 100).unwrap().entries.len(), 7);
         let capped = list_dir(&dir, &exts(&["docx"]), 2).unwrap();
         assert_eq!(capped.entries.len(), 2);
         assert!(capped.truncated);

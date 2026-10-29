@@ -86,6 +86,25 @@ pub(super) fn clamped_scroll(before: egui::Vec2, delta: egui::Vec2, max: egui::V
 /// handles, then page hit testing, outlines, headers and footers, equations, selection and caret
 /// interaction.
 pub(super) fn mouse(app: &mut WordApp, ui: &Ui, resp: &egui::Response, rects: &[Rect], layout: &DocLayout, scale: f32) {
+    if let Some(control) = egui::DragAndDrop::payload::<crate::vba_editor::FormControlDrag>(ui.ctx()) {
+        let target = ui
+            .input(|i| i.pointer.latest_pos())
+            .filter(|p| app.canvas.viewport.is_some_and(|viewport| viewport.contains(*p)) && rects.iter().any(|rect| rect.contains(*p)))
+            .and_then(|p| page_at(rects, layout, scale, p).and_then(|(page, x, y)| layout.hit(page, x, y, StoryRef::Body)).map(|pos| (p, pos)));
+        if let Some((point, _)) = &target {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
+            ui.painter().circle_stroke(*point, 6.0, egui::Stroke::new(2.0, crate::theme::Tokens::get(ui.ctx()).blue));
+        }
+        if ui.input(|i| i.pointer.any_released()) {
+            egui::DragAndDrop::take_payload::<crate::vba_editor::FormControlDrag>(ui.ctx());
+            if let Some((_, pos)) = target
+                && let Err(error) = crate::vba_editor::insert_form_control(app, &control, &pos)
+            {
+                app.session.status = error;
+            }
+        }
+        return;
+    }
     let Some(pointer) = route_pointer_targets(app, ui, resp, rects, layout, scale) else {
         return;
     };

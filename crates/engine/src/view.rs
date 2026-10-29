@@ -39,9 +39,12 @@ pub struct ViewState {
     /// The Accessibility pane (Review › Check Accessibility): the checker's findings.
     #[serde(default)]
     pub accessibility_pane: bool,
-    /// Fork Scribe pane, retained across the view-state reorganization.
+    /// DraftHearth's assistant pane.
     #[serde(default)]
     pub assistant_pane: bool,
+    /// Side-by-side VBA source editor (Developer).
+    #[serde(default)]
+    pub vba_editor: bool,
     /// The Alt Text pane (Picture/Shape Format › Alt Text): the selected object's or table's alt text.
     #[serde(default)]
     pub alt_text_pane: bool,
@@ -185,6 +188,7 @@ impl Default for ViewState {
             smart_art_pane: false,
             accessibility_pane: false,
             assistant_pane: false,
+            vba_editor: false,
             alt_text_pane: false,
             format_shape_pane: false,
             multi_page: false,

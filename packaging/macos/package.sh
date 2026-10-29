@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Build, sign and (optionally) notarize the macOS release artifacts:
 #
-#   $DIST/wordcraft-<version>-macos-<arch>.dmg          Nisaba.app on a drag-to-Applications DMG
-#   $DIST/wordcraft-cli-<version>-macos-<arch>.zip      the headless CLI
+#   $DIST/nisaba-<version>-macos-<arch>.dmg          DraftHearth.app on a drag-to-Applications DMG
+#   $DIST/nisaba-cli-<version>-macos-<arch>.zip      the headless CLI
 #
 # Usage: packaging/macos/package.sh [--arch universal|aarch64|x86_64] [--skip-build]
 #
@@ -52,7 +52,7 @@ else
   warn "macOS: APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID incomplete; signed but not notarized"
 fi
 
-echo "==> Nisaba $VERSION for macOS ($ARCH), identity: $IDENTITY, notarize: $NOTARIZE"
+echo "==> DraftHearth $VERSION for macOS ($ARCH), identity: $IDENTITY, notarize: $NOTARIZE"
 
 # ---- build -------------------------------------------------------------------------------------
 if [[ "$SKIP_BUILD" = 0 ]]; then
@@ -112,7 +112,7 @@ notarize() {
   fi
 }
 
-# ---- Nisaba.app ----------------------------------------------------------------------------
+# ---- DraftHearth.app ----------------------------------------------------------------------------
 echo "==> assembling $APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 # Executable and icon carry the display name (CFBundleExecutable / CFBundleIconFile).
@@ -178,7 +178,7 @@ hdiutil_retry() {
 # (Finder location -1,-1), so the signed app failed `codesign --verify --deep --strict` inside the
 # mounted DMG and after copying it out (#525). The volume name has no version: .DS_Store finds the
 # background through an alias that includes it.
-hdiutil_retry create -srcfolder "$STAGE" -volname "Nisaba" -fs HFS+ -format UDZO \
+hdiutil_retry create -srcfolder "$STAGE" -volname "DraftHearth" -fs HFS+ -format UDZO \
   -imagekey zlib-level=9 -ov "$DMG"
 sign "$DMG"
 codesign --verify --strict --verbose=2 "$DMG"
@@ -190,7 +190,7 @@ verify_dmg_app() {
   local dmg="$1" mount="$WORK/dmg-check" copy="$WORK/dmg-check-copy" rc=0
   mkdir -p "$mount" "$copy"
   hdiutil_retry attach -readonly -nobrowse -noautoopen -mountpoint "$mount" "$dmg" >/dev/null
-  echo "==> strict signature check of Nisaba.app inside $(basename "$dmg")"
+  echo "==> strict signature check of DraftHearth.app inside $(basename "$dmg")"
   codesign --verify --deep --strict --verbose=2 "$mount/Nisaba.app" || rc=1
   if [[ "$rc" = 0 ]]; then
     ditto "$mount/Nisaba.app" "$copy/Nisaba.app" || rc=1
@@ -203,7 +203,7 @@ verify_dmg_app() {
     spctl --assess --type execute -vvv "$copy/Nisaba.app" || rc=1
   fi
   if [[ "$rc" != 0 ]]; then
-    echo "error: Nisaba.app in $(basename "$dmg") fails strict verification; extended attributes:" >&2
+    echo "error: DraftHearth.app in $(basename "$dmg") fails strict verification; extended attributes:" >&2
     xattr -lr "$mount/Nisaba.app" >&2 || true
   fi
   hdiutil_retry detach "$mount" >/dev/null || hdiutil detach "$mount" -force >/dev/null || rc=1

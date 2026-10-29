@@ -3,43 +3,43 @@
   <?ifndef HasCraftFontLicences ?>
   <?define HasCraftFontLicences=0 ?>
   <?endif?>
-  <Package Name="Nisaba" Manufacturer="Learning Machines LLC" Version="$(var.Version)" UpgradeCode="CA023669-1903-46E1-89D2-8A889DBF885E" Scope="perUserOrMachine" Compressed="yes" Language="1033">
-    <SummaryInformation Description="Nisaba word processor" Manufacturer="Learning Machines LLC" />
+  <Package Name="DraftHearth" Manufacturer="Tom Blanchard" Version="$(var.Version)" UpgradeCode="CA023669-1903-46E1-89D2-8A889DBF885E" Scope="perUserOrMachine" Compressed="yes" Language="1033">
+    <SummaryInformation Description="DraftHearth word processor" Manufacturer="Tom Blanchard" />
     <?include $(sys.SOURCEFILEDIR)install-policy.wxi?>
     <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
          (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
-    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of Nisaba is already installed." />
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of DraftHearth is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
     <Icon Id="WordcraftIcon.ico" SourceFile="$(var.IconPath)" />
     <Property Id="ARPPRODUCTICON" Value="WordcraftIcon.ico" />
-    <Property Id="ARPURLINFOABOUT" Value="https://getartcraft.com/apps/wordcraft" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://getartcraft.com/apps/wordcraft" />
-    <Property Id="ARPHELPLINK" Value="https://discord.gg/artcraft" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/tomblanchard312/DraftHearth" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/tomblanchard312/DraftHearth/releases" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/tomblanchard312/DraftHearth/issues" />
 
     <!-- Installer UI (#198): WixUI_Minimal is welcome + license, progress, then a finish page so
          people can see the install worked. Its dialogs and bitmaps are WiX's own
          (WixToolset.UI.wixext); package.ps1 builds the license RTF from LICENSE-MIT and
-         LICENSE-APACHE. The finish page offers to launch Nisaba (ticked by default) through
+         LICENSE-APACHE. The finish page offers to launch DraftHearth (ticked by default) through
          WixShellExec (WixToolset.Util.wixext); silent installs (/qn) never show it. -->
     <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
-    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Nisaba" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch DraftHearth" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
     <Property Id="WixShellExecTarget" Value="[#WordcraftExe]" />
-    <CustomAction Id="LaunchWordcraft" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixShellExec" Impersonate="yes" Return="ignore" />
+    <CustomAction Id="LaunchWordcraft" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixShellExec"
+        Impersonate="yes" Return="ignore" />
     <UI>
       <ui:WixUI Id="WixUI_Minimal" />
-      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchWordcraft" Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchWordcraft"
+          Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
     </UI>
 
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="CraftSuiteFolder" Name="ArtCraft">
-        <Directory Id="INSTALLFOLDER" Name="Nisaba" />
-      </Directory>
+      <Directory Id="INSTALLFOLDER" Name="DraftHearth" />
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
 
-    <Feature Id="Main" Title="Nisaba" Level="1">
+    <Feature Id="Main" Title="DraftHearth" Level="1">
       <ComponentGroupRef Id="AppNotices" />
       <?if $(var.HasCraftFontLicences) = 1 ?>
       <ComponentGroupRef Id="CraftFontLicences" />
@@ -56,27 +56,29 @@
     <ComponentGroup Id="CraftFontLicences" Directory="INSTALLFOLDER">
       <Files Include="$(var.DocsDir)\**" />
     </ComponentGroup>
-    <?endif?>
+    <?endif ?>
     <ComponentGroup Id="WordcraftFiles" Directory="INSTALLFOLDER">
       <Component Id="WordcraftApp" Guid="5E4CB9AE-4D3E-49D9-9EB3-C729FBFF6966">
         <File Id="WordcraftExe" Source="$(var.BinDir)\wordcraft.exe" KeyPath="yes">
-          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Nisaba" Description="Nisaba word processor" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="WordcraftIcon.ico" IconIndex="0" />
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="DraftHearth"
+              Description="DraftHearth word processor" WorkingDirectory="INSTALLFOLDER" Advertise="yes"
+              Icon="WordcraftIcon.ico" IconIndex="0" />
         </File>
 
         <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\wordcraft.exe" Value="[#WordcraftExe]" Type="string" />
       <RegistryValue Root="HKMU" Key="Software\Nisaba" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
       </Component>
 
-      <!-- File associations (#295). Each document type gets a Nisaba ProgId (name, icon, open
-           command) and is listed under the extension's OpenWithProgids, so Nisaba shows in
-           Explorer's "Open with". The Word, RTF and ODT types are also Nisaba's Capabilities
+      <!-- File associations (#295). Each document type gets a DraftHearth ProgId (name, icon, open
+           command) and is listed under the extension's OpenWithProgids, so DraftHearth shows in
+           Explorer's "Open with". The Word, RTF and ODT types are also DraftHearth's Capabilities
            (RegisteredApplications), so it appears in Settings › Default apps, where the user
            makes it the default (File › Options › General opens that page). Nothing here sets an
            extension's default: the installer never takes over .docx from another app. Markdown and
            plain text are only "Open with" candidates. Removed again on uninstall. -->
       <Component Id="WordcraftFileTypes" Guid="A1E2AC6C-19B4-455B-94C7-C22273BC635A">
-        <RegistryValue Root="HKMU" Key="Software\RegisteredApplications" Name="Nisaba" Value="Software\Nisaba\Capabilities" Type="string" KeyPath="yes" />
-        <RegistryValue Root="HKMU" Key="Software\Nisaba\Capabilities" Name="ApplicationName" Value="Nisaba" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\RegisteredApplications" Name="DraftHearth" Value="Software\Nisaba\Capabilities" Type="string" KeyPath="yes" />
+        <RegistryValue Root="HKMU" Key="Software\Nisaba\Capabilities" Name="ApplicationName" Value="DraftHearth" Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Nisaba\Capabilities" Name="ApplicationDescription" Value="Write and design documents; open and save Word files." Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Nisaba\Capabilities" Name="ApplicationIcon" Value="&quot;[#WordcraftExe]&quot;,0" Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Classes\Applications\wordcraft.exe" Name="FriendlyAppName" Value="Nisaba" Type="string" />

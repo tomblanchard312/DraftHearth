@@ -3,7 +3,6 @@ use super::{
     file_dialogs, i18n, json, keeps_everything, keytips, now_ms, options, panes, paste_picture, printing, push_recent_font, system_clipboard,
     table_pen, theme, widgets, zotero,
 };
-use crate::assistant_pane;
 
 impl WordApp {
     /// `run` for a command a mouse drag on a table sends: the view stays where it is.
@@ -29,6 +28,14 @@ impl WordApp {
     /// Close, Envelopes, Labels and Finish & Merge on a document with unsaved changes first ask
     /// Save / Don't Save / Cancel, and the command runs once that is answered (`ui.saveChanges`).
     pub fn run(&mut self, id: &str, params: Value) -> Result<Value, String> {
+        if id == "ui.imageGen" {
+            if !self.has_document() {
+                return Err("Open a document first".into());
+            }
+            let task = params.get("task").and_then(Value::as_str).unwrap_or("image");
+            crate::image_gen::open(self, task);
+            return Ok(json!({}));
+        }
         // Comment text still being typed is written first, so a save or export has it and a
         // close, New or Open counts it as a change (#1348). A draft the document refuses is not
         // part of it: saving and exporting go on without it (the refusal stays on the status
@@ -113,6 +120,12 @@ impl WordApp {
     /// Run a command for a script or an agent (control channel, MCP bridge): never asks first.
     /// UI-level commands (`ui.*`) are handled here, the rest by the engine.
     pub fn execute(&mut self, id: &str, params: Value) -> Result<Value, String> {
+        if id == "ui.imageGen.cancel" {
+            return Ok(json!({"cancelled": crate::image_gen::cancel(&mut self.image_gen)}));
+        }
+        if id == "ui.imageGen" {
+            return self.run(id, params);
+        }
         self.clear_command_targets(id);
         if let Some(error) = self.document_required_error(id) {
             return Err(error);
@@ -129,15 +142,11 @@ impl WordApp {
         if let Some(r) = table_pen::toggle(self, id, &params) {
             return r;
         }
-        if id == "ui.assistant.addModel" {
-            let r = match params.get("path").and_then(Value::as_str) {
-                Some(path) => assistant_pane::add_model(self, path),
-                None => Err("path: the model file to add".to_string()),
-            };
-            if let Err(e) = &r {
-                self.status(e.clone());
-            }
-            return r;
+        if let Some(result) = crate::vba_editor::command(self, id, &params) {
+            return result;
+        }
+        if let Some(result) = crate::assistant_pane::command(self, id, &params) {
+            return result;
         }
         let ctx = self.ctx.clone();
         if let Some(r) = zotero::command(self, id, &params, ctx.as_ref()) {

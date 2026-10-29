@@ -34,6 +34,22 @@ pub(super) fn insert(app: &mut WordApp, ui: &mut Ui) {
     });
     group(ui, "Illustrations", None, app, |ui, app| {
         big(ui, app, "picture", "Pictures", "insert.picture", json!({}), false);
+        menu_button(
+            ui,
+            app,
+            crate::widgets::MenuButtonOptions::new(
+                "picture",
+                Some("Generate"),
+                "Generate an image, a logo, or expand a picture",
+                true,
+                "ui.imageGen",
+            ),
+            |ui, app| {
+                mi(ui, app, "Image…", "ui.imageGen", json!({"task": "image"}));
+                mi(ui, app, "Logo…", "ui.imageGen", json!({"task": "logo"}));
+                mi(ui, app, "Expand Picture…", "ui.imageGen", json!({"task": "expand"}));
+            },
+        );
         menu_button(ui, app, crate::widgets::MenuButtonOptions::new("shapes", Some("Shapes"), "Shapes", true, "insert.shape"), |ui, app| {
             for (l, k) in [
                 ("Rectangle", "rectangle"),

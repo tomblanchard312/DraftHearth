@@ -183,6 +183,11 @@ impl WordApp {
     /// The window's close button (or the system) asked to quit. Returns true to let the window
     /// close; with unsaved changes it asks first and returns false.
     pub fn close_requested(&mut self) -> bool {
+        if self.vba.unsaved() {
+            self.session.view.vba_editor = true;
+            self.status(tl!("Save or revert unsaved VBA modules before closing."));
+            return false;
+        }
         if self.printing.busy() {
             self.status(tl!("Wait for the print job to finish submitting before closing."));
             return false;

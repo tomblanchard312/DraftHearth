@@ -45,6 +45,7 @@ pub fn open(app: &WordApp) -> Vec<Pane> {
         (Pane::Styles, v.styles_pane),
         (Pane::StyleInspector, v.style_inspector),
         (Pane::Accessibility, v.accessibility_pane),
+        (Pane::VbaEditor, v.vba_editor),
         (Pane::Assistant, v.assistant_pane),
         (Pane::AltText, v.alt_text_pane),
         (Pane::FormatShape, v.format_shape_pane),

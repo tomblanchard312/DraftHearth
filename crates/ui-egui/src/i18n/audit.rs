@@ -151,6 +151,7 @@ impl<'a> Exempt<'a> {
         // Product identity, legal credits and user-selected names keep their original spelling.
         names.extend([
             wordcraft_brand::NAME.to_string(),
+            wordcraft_brand::ASSISTANT_NAME.to_string(),
             wordcraft_brand::COPYRIGHT.to_string(),
             wordcraft_brand::HOMEPAGE.trim_start_matches("https://").to_string(),
             format!("{}: {}", wordcraft_brand::UPSTREAM_NAME, wordcraft_brand::UPSTREAM_HOMEPAGE.trim_start_matches("https://")),
@@ -219,6 +220,18 @@ impl<'a> Exempt<'a> {
             || plain == "CONFIDENTIAL" // the watermark dialog's text: document content, kept as typed
             || plain == "Figure 1" // the caption dialog's sample: the label goes into the document as is
     }
+}
+
+#[test]
+fn fork_identities_are_data_but_interface_labels_still_need_translation() {
+    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let math = Default::default();
+    let exempt = Exempt::new(&app, &math);
+    assert!(exempt.allows(&app, wordcraft_brand::NAME));
+    assert!(exempt.allows(&app, wordcraft_brand::COPYRIGHT));
+    assert!(exempt.allows(&app, &app.session.author));
+    assert!(!exempt.allows(&app, "Open DraftHearth releases to check for a newer version."));
+    assert!(!exempt.allows(&app, "Document modules"));
 }
 
 #[test]

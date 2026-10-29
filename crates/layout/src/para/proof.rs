@@ -77,10 +77,13 @@ pub fn proof_text(p: &wordcraft_doc::Paragraph) -> String {
     // The run holding each character ([`Paragraph::props_of_char`]), found by walking the runs
     // along with the text rather than from the first run for every character.
     let mut runs = p.runs.iter();
+    crate::work::steps(1);
     let mut run = runs.next();
     let mut end = run.map_or(0, |r| r.len);
     for (i, c) in p.text.char_indices() {
+        crate::work::steps(1);
         while run.is_some() && i >= end {
+            crate::work::steps(1);
             run = runs.next();
             end = end.saturating_add(run.map_or(0, |r| r.len));
         }

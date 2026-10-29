@@ -7,11 +7,11 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleDisplayName</key>
-  <string>Nisaba</string>
+  <string>DraftHearth</string>
   <key>CFBundleName</key>
-  <string>Nisaba</string>
+  <string>DraftHearth</string>
   <key>CFBundleExecutable</key>
-  <string>Nisaba</string>
+  <string>DraftHearth</string>
   <key>CFBundleIdentifier</key>
   <string>io.github.tomblanchard312.Nisaba</string>
   <key>CFBundleInfoDictionaryVersion</key>
@@ -29,7 +29,7 @@
   <key>WordCraftBuildCommit</key>
   <string>@BUILD_SHA@</string>
   <key>CFBundleIconFile</key>
-  <string>Nisaba</string>
+  <string>DraftHearth</string>
   <key>LSApplicationCategoryType</key>
   <string>public.app-category.productivity</string>
   <!-- Must match MACOSX_DEPLOYMENT_TARGET in package.sh. Big Sur is the first release on
@@ -45,7 +45,7 @@
   <key>NSHumanReadableCopyright</key>
   <string>Copyright © the WordCraft authors and Tom Blanchard. MIT OR Apache-2.0.</string>
 
-  <!-- Documents Nisaba opens (system type declarations). -->
+  <!-- Documents DraftHearth opens (system type declarations). -->
   <key>CFBundleDocumentTypes</key>
   <array>
     <dict>

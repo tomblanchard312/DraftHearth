@@ -283,7 +283,7 @@ public static partial class Transpiler
             while (i < s.Length && (char.IsLetterOrDigit(s[i]) || s[i] == '_')) i++;
             if (i < s.Length && "$%&!#@".Contains(s[i])) i++;
             firstIdent ??= s[idStart..i];
-            if (i < s.Length && s[i] == '(')
+            while (i < s.Length && s[i] == '(')
             {
                 int close = MatchParen(s, i);
                 if (close < 0) return s;

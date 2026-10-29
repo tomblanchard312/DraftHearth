@@ -1,17 +1,13 @@
 #!/usr/bin/env bash
 # Build and package Nisaba for Linux (<arch> is x86_64 or aarch64, or riscv64 when cross-compiling):
 #
-#   $DIST/nisaba-<version>-linux-<arch>.AppImage  any distro with glibc >= the build host's
-#   $DIST/nisaba-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
-#   $DIST/nisaba-<version>-linux-<arch>.deb       Debian, Ubuntu, Mint, Pop!_OS, ...
-#   $DIST/nisaba-<version>-linux-<arch>.rpm       Fedora, openSUSE, RHEL, ...
-#   $DIST/nisaba-<version>-linux-<arch>.tar.gz    plain FHS-style tree (bin/, share/)
+#   $DIST/wordcraft-<version>-linux-<arch>.AppImage  any distro with glibc >= the build host's
+#   $DIST/wordcraft-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
+#   $DIST/wordcraft-<version>-linux-<arch>.deb       Debian, Ubuntu, Mint, Pop!_OS, ...
+#   $DIST/wordcraft-<version>-linux-<arch>.rpm       Fedora, openSUSE, RHEL, ...
+#   $DIST/wordcraft-<version>-linux-<arch>.tar.gz    plain FHS-style tree (bin/, share/)
 #
 # Usage: packaging/linux/package.sh [--skip-build] [--formats "appimage deb rpm tar"]
-#
-# SHAREDAI_BIN_DIR: a folder with sharedai-daemon and sharedai-worker (a SharedAI release build).
-# When set, they ship in usr/lib/nisaba/, where Nisaba starts the daemon for its writing
-# assistant. Without them the assistant works only with a SharedAI installed separately.
 #
 # Needs: cargo; nfpm for deb/rpm (https://nfpm.goreleaser.com); appimagetool for the AppImage
 # (downloaded into $CARGO_TARGET_DIR if missing). Build on an old distro (CI: Ubuntu 22.04,
@@ -41,8 +37,8 @@ case "$ARCH" in
   aarch64 | arm64) ARCH=aarch64; DEB_ARCH=arm64 ;;
   *) echo "unsupported architecture $ARCH" >&2; exit 2 ;;
 esac
-export WORDCRAFT_MAINTAINER="${WORDCRAFT_MAINTAINER:-Tom Blanchard <tomblanchard3@gmail.com>}"
-BASENAME="nisaba-$VERSION-linux-$ARCH"
+export WORDCRAFT_MAINTAINER="${WORDCRAFT_MAINTAINER:-Nisaba maintainers <wordcraft@storyteller.ai>}"
+BASENAME="wordcraft-$VERSION-linux-$ARCH"
 
 echo "==> Nisaba $VERSION for Linux $ARCH ($FORMATS)"
 
@@ -59,16 +55,9 @@ STAGE="$WORK/root"
 rm -rf "$WORK"
 
 # ---- stage an FHS tree (shared by every format) -------------------------------------------------
-install -Dm755 "$BIN/wordcraft" "$STAGE/usr/bin/nisaba"
-install -Dm755 "$BIN/wordcraft-cli" "$STAGE/usr/bin/nisaba-cli"
-"${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/nisaba" "$STAGE/usr/bin/nisaba-cli" 2>/dev/null || true
-if [[ -n "${SHAREDAI_BIN_DIR:-}" ]]; then
-  for b in sharedai-daemon sharedai-worker; do
-    [[ -x "$SHAREDAI_BIN_DIR/$b" ]] || { echo "error: $SHAREDAI_BIN_DIR/$b not found" >&2; exit 1; }
-    install -Dm755 "$SHAREDAI_BIN_DIR/$b" "$STAGE/usr/lib/nisaba/$b"
-  done
-  "${CROSS_COMPILE:-}strip" "$STAGE/usr/lib/nisaba/"sharedai-* 2>/dev/null || true
-fi
+install -Dm755 "$BIN/wordcraft" "$STAGE/usr/bin/wordcraft"
+install -Dm755 "$BIN/wordcraft-cli" "$STAGE/usr/bin/wordcraft-cli"
+"${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/wordcraft" "$STAGE/usr/bin/wordcraft-cli" 2>/dev/null || true
 install -Dm644 "$HERE/$APP_ID.desktop" "$STAGE/usr/share/applications/$APP_ID.desktop"
 install -Dm644 "$HERE/$APP_ID.mime.xml" "$STAGE/usr/share/mime/packages/$APP_ID.xml"
 mkdir -p "$STAGE/usr/share/metainfo"
@@ -76,8 +65,8 @@ sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$WORDCRAFT_BUILD_DATE/g" \
   "$HERE/$APP_ID.metainfo.xml.in" >"$STAGE/usr/share/metainfo/$APP_ID.metainfo.xml"
 mkdir -p "$STAGE/usr/share/icons"
 cp -R "$ROOT/assets/app-icon/hicolor" "$STAGE/usr/share/icons/"
-mkdir -p "$STAGE/usr/share/doc/nisaba"
-copy_docs "$STAGE/usr/share/doc/nisaba"
+mkdir -p "$STAGE/usr/share/doc/wordcraft"
+copy_docs "$STAGE/usr/share/doc/wordcraft"
 
 if command -v desktop-file-validate >/dev/null; then
   desktop-file-validate "$STAGE/usr/share/applications/$APP_ID.desktop"
@@ -103,10 +92,6 @@ if has deb || has rpm; then
   export NFPM_ARCH="$DEB_ARCH"
   # nfpm expands env vars in fields like `version` and `arch`, but not in `contents[].src`.
   sed "s|\${STAGE}|$STAGE|g" "$HERE/nfpm.yaml" >"$WORK/nfpm.yaml"
-  if [[ -d "$STAGE/usr/lib/nisaba" ]]; then
-    # The assistant's local model service (SHAREDAI_BIN_DIR); a `contents` entry only when shipped.
-    sed -i "s|^contents:|contents:\n  - src: $STAGE/usr/lib/nisaba/\n    dst: /usr/lib/nisaba/\n    type: tree|" "$WORK/nfpm.yaml"
-  fi
   for fmt in deb rpm; do
     if has "$fmt"; then (cd "$ROOT" && nfpm package -f "$WORK/nfpm.yaml" -p "$fmt" -t "$DIST/$BASENAME.$fmt"); fi
   done
@@ -146,8 +131,7 @@ if has appimage; then
   }
   APPDIR="$WORK/Nisaba.AppDir"
   cp -R "$STAGE" "$APPDIR"
-  mv "$APPDIR/usr/share/doc" "$WORK/doc-unused"
-  ln -s usr/bin/nisaba "$APPDIR/AppRun"
+  ln -s usr/bin/wordcraft "$APPDIR/AppRun"
   cp "$HERE/$APP_ID.desktop" "$APPDIR/$APP_ID.desktop"
   cp "$ROOT/assets/app-icon/hicolor/256x256/apps/$APP_ID.png" "$APPDIR/$APP_ID.png"
   ln -s "$APP_ID.png" "$APPDIR/.DirIcon"
@@ -177,8 +161,8 @@ if has appimage; then
   # fetch only the blocks that changed in a newer release, through the .zsync published next to
   # each AppImage on GitHub Releases. `latest` is the newest published release that is not a
   # pre-release. A fork's builds point at its own releases through GITHUB_REPOSITORY.
-  REPO="${GITHUB_REPOSITORY:-tomblanchard312/wordcraft-nisaba}"
-  UPDATE_INFO="gh-releases-zsync|${REPO%%/*}|${REPO#*/}|latest|nisaba-*-linux-$ARCH.AppImage.zsync"
+  REPO="${GITHUB_REPOSITORY:-storytold/wordcraft}"
+  UPDATE_INFO="gh-releases-zsync|${REPO%%/*}|${REPO#*/}|latest|wordcraft-*-linux-$ARCH.AppImage.zsync"
   # Extract-and-run: works without FUSE (containers, CI). The output embeds the pinned static
   # runtime, so users don't need libfuse2 either. With zsyncmake on the host (CI installs the zsync
   # package) appimagetool also writes the .zsync, into its working directory, hence the cd.
@@ -193,9 +177,9 @@ if has appimage; then
 fi
 
 if [[ -z "${CROSS_TARGET:-}" ]]; then
-  "$STAGE/usr/bin/nisaba-cli" --version
+  "$STAGE/usr/bin/wordcraft-cli" --version
 elif [[ -n "${EMULATOR:-}" ]]; then
-  "$EMULATOR" "$STAGE/usr/bin/nisaba-cli" --version
+  "$EMULATOR" "$STAGE/usr/bin/wordcraft-cli" --version
 fi
 echo "==> done"
 ls -lh "$DIST"

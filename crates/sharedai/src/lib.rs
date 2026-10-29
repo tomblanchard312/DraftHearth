@@ -352,7 +352,10 @@ pub fn daemon_candidates(exe: Option<&std::path::Path>, path: Option<&std::ffi::
 
 #[cfg(unix)]
 mod net {
-    use super::*;
+    use super::{
+        AtomicBool, Duration, Error, FrameReader, MAX_FRAME_V1, MAX_FRAME_V2, Message, POLL, Params, Summary, Timeouts, VERSION_BASE,
+        VERSION_INFERENCE, Value, chat_request, drive, encode, find_daemon, hash_file, json,
+    };
     use std::io::Write;
     use std::os::unix::net::UnixStream;
     use std::path::Path;
@@ -471,6 +474,7 @@ mod net {
         }
     }
 
+    #[allow(clippy::too_many_arguments)] // Matches the existing public streaming API.
     pub fn chat(
         endpoint: &Path,
         app: &str,

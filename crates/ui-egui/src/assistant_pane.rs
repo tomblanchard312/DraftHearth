@@ -215,7 +215,7 @@ impl State {
         self.job.as_ref().is_some_and(|j| matches!(j.work, Work::Writing | Work::Memory))
     }
 
-    fn stop(&mut self) {
+    pub(crate) fn stop(&mut self) {
         if let Some(j) = &self.job {
             j.cancel.store(true, Ordering::Relaxed);
         }
@@ -650,11 +650,6 @@ fn working_label(ui: &mut Ui, text: &str) {
 }
 
 pub fn pane(app: &mut WordApp, ui: &mut Ui) {
-    if crate::panes::header(ui, NAME) {
-        app.assistant.stop();
-        let _ = app.run("view.assistantPane", json!({"value": false}));
-        return;
-    }
     let model_now = app.session.prefs.assistant_model.clone();
     if let Some(m) = app.assistant.poll(&model_now) {
         let _ = app.run("assistant.settings", json!({"model": m}));
@@ -730,7 +725,7 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.label(tl!("Model"));
             let mut model = app.session.prefs.assistant_model.clone();
-            egui::ComboBox::from_id_salt("assistant_model").selected_text(model.clone()).show_ui(ui, |ui| {
+            craft_ui::ComboBox::from_id_salt("assistant_model").selected_text(model.clone()).show_ui(ui, |ui| {
                 for m in &app.assistant.models {
                     ui.selectable_value(&mut model, m.clone(), m);
                 }

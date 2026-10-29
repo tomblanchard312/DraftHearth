@@ -16,7 +16,7 @@ runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
-command: nisaba
+command: wordcraft
 finish-args:
   # Display: Wayland first; X11 only when no Wayland compositor is running.
   - --socket=wayland
@@ -31,15 +31,10 @@ finish-args:
   # line, Open Recent, "Save" next to the original) work in the usual places.
   - --filesystem=xdg-documents
   - --filesystem=xdg-pictures
-  # The Assistant talks to the SharedAI daemon on the host through its private socket
-  # ($XDG_RUNTIME_DIR/sharedai/ipc.sock); only that folder of the runtime directory is shared.
-  - --filesystem=xdg-run/sharedai
-  # The models folder every app shares (~/.local/share/SharedAI/models) and the service's model
-  # registry beside it, for the service Nisaba starts when none is running on the host.
-  - --filesystem=xdg-data/SharedAI:create
-  # Deliberately not granted: network (the optional --control server listens on 127.0.0.1 in
-  # the sandbox; `flatpak override --user --share=network io.github.tomblanchard312.Nisaba` exposes it to
-  # host agents) and home/host filesystem access.
+  # Network: update checks reach GitHub. Shared host network namespace, so the optional
+  # --control server's 127.0.0.1 listener is reachable from the host as well.
+  - --share=network
+  # Deliberately not granted: home/host filesystem access.
 build-options:
   append-path: /usr/lib/sdk/rust-stable/bin
 modules:
@@ -54,8 +49,9 @@ modules:
         CRAFT_I18N_REQUIRED: '1'
     build-commands:
       - cargo --offline build --release --locked -p wordcraft -p wordcraft-cli
-      - install -Dm755 target/release/wordcraft /app/bin/nisaba
-      - install -Dm755 target/release/wordcraft-cli /app/bin/nisaba-cli
+      - install -Dm755 target/release/wordcraft /app/bin/wordcraft
+      - install -Dm644 NOTICE /app/share/doc/wordcraft/NOTICE
+      - install -Dm755 target/release/wordcraft-cli /app/bin/wordcraft-cli
       - install -Dm644 packaging/linux/io.github.tomblanchard312.Nisaba.desktop /app/share/applications/io.github.tomblanchard312.Nisaba.desktop
       - install -Dm644 packaging/linux/io.github.tomblanchard312.Nisaba.mime.xml /app/share/mime/packages/io.github.tomblanchard312.Nisaba.xml
       - mkdir -p /app/share/icons && cp -R assets/app-icon/hicolor /app/share/icons/
@@ -76,6 +72,6 @@ modules:
       # The interface translations at the commit in craft-i18n.rev (a test keeps the two equal).
       - type: git
         url: https://github.com/storytold/craft-i18n
-        commit: 04600cbb1508f1b15927ec574a5e32e5f376fd8b
+        commit: 9205108cfdced5177706264038848b68b2422d2b
         dest: craft-i18n
       - cargo-sources.json

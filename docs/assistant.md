@@ -46,3 +46,18 @@ An MCP agent with its own model can call `assistant.apply` to propose edits for 
 - `crates/ui-egui/src/assistant_pane.rs`: the pane. Starting the service, adding a model and writing run on worker threads and report back over a channel, so the window never waits.
 
 Not yet: SharedAI's Windows named-pipe transport, conversation history across requests, a document-wide "ask about this document" mode, downloading models (the Flatpak has no network access by design), and using the GPU from the bundled CPU worker.
+
+
+## Shared conversations and style
+
+With Enki protocol 3, **Conversation and shared memory** shows the completed conversation
+shared with Nanshe and other participating apps. **Preferences and style** stores explicit
+preferences. **Save preferences** preserves them verbatim; **Compact conversation** asks the
+selected local model to summarize older turns; **Clear conversation across apps** removes
+history and its summary while keeping preferences. Compaction is lossy and commits only when
+generation finishes and no newer memory was saved. Refresh before retrying a conflict.
+History is bounded; when full Scribe asks for compaction or clearing and reports unsaved turns.
+Memory is kept in Enki's local user registry. Older daemons can still chat but show that shared
+memory is unavailable. Document selections are sent as live context, not automatically saved
+as conversation history. User prompts and answers can themselves contain sensitive content.
+Memory provides context and style; edits still go through tracked changes.

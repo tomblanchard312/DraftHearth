@@ -274,8 +274,8 @@ pub fn friendly(e: &wordcraft_sharedai::Error) -> String {
         E::Registry(_) => tl!("That model couldn't be added.").to_string(),
         E::Inference { kind, .. } => match kind.as_str() {
             "context_overflow" => f(tl!("That's more text than {name} can read at once. Select less.")),
-            "model_not_found" | "model_rejected" => f(tl!("{name}'s model is missing or has changed. Choose the model file again.")),
-            "load_failed" => f(tl!("{name} couldn't load its model. It may need more memory, or another model file.")),
+            "model_not_found" | "model_rejected" => f(tl!("{name} needs attention. Open Enki to check text generation, then retry.")),
+            "load_failed" => f(tl!("{name} couldn't start. Free some memory or check Enki, then retry.")),
             "worker_crashed" => f(tl!("{name} stopped unexpectedly. Try again.")),
             _ => f(tl!("{name} ran into a problem. Try again.")),
         },
@@ -327,19 +327,7 @@ fn keep_model_file(src: &Path) -> Result<PathBuf, wordcraft_sharedai::Error> {
 }
 
 fn local_models() -> Result<Vec<String>, wordcraft_sharedai::Error> {
-    let dir = models_dir().ok_or(wordcraft_sharedai::Error::NoEndpoint)?;
-    if !dir.exists() {
-        return Ok(Vec::new());
-    }
-    let mut paths = Vec::new();
-    for entry in std::fs::read_dir(dir)? {
-        let path = entry?.path();
-        if path.is_file() && path.extension().is_some_and(|e| e.eq_ignore_ascii_case("gguf")) {
-            paths.push(path.to_string_lossy().into_owned());
-        }
-    }
-    paths.sort();
-    Ok(paths)
+    wordcraft_sharedai::available_text_models()
 }
 
 fn refresh_models(app: &mut WordApp) {
@@ -409,62 +397,8 @@ pub fn download_model(app: &mut WordApp, id: &str) -> Result<Value, String> {
     Ok(json!({"downloading": id}))
 }
 
-fn model_downloads(app: &mut WordApp, ui: &mut Ui, busy: bool) {
-    ui.collapsing(tl!("Download a model"), |ui| {
-        ui.label(egui::RichText::new(tl!("Downloads come from Hugging Face. Review the model's license before downloading.")).small());
-        for model in wordcraft_sharedai::models::CATALOG {
-            ui.group(|ui| {
-                ui.label(format!("{} · {:.1} GB · {}", model.name, model.size as f64 / 1_000_000_000.0, model.license));
-                if wordcraft_sharedai::models::scribe_default().is_some_and(|d| d.id == model.id) {
-                    ui.label(tl!("Default for Scribe"));
-                }
-                ui.hyperlink_to(tl!("Model and license"), format!("https://huggingface.co/{}", model.repo));
-                let installed = models_dir().map(|d| d.join(model.file)).is_some_and(|p| p.is_file());
-                if installed {
-                    ui.label(tl!("Installed"));
-                }
-                if ui.add_enabled(!busy, egui::Button::new(if installed { tl!("Download again") } else { tl!("Download") })).clicked()
-                    && let Err(e) = app.run("ui.assistant.downloadModel", json!({"model": model.id}))
-                {
-                    app.assistant.status = e.to_string();
-                }
-            });
-        }
-        ui.add_enabled(
-            !busy,
-            egui::TextEdit::singleline(&mut app.assistant.token).password(true).hint_text(tl!("Hugging Face read token (gated models only)")),
-        );
-        ui.label(
-            egui::RichText::new(tl!(
-                "For gated models, accept access terms on Hugging Face first. The token is used for one download and isn't saved."
-            ))
-            .small()
-            .weak(),
-        );
-    });
-}
-
-fn choose_model_file(app: &mut WordApp) {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let request = crate::file_dialogs::FileDialogRequest::Open { purpose: "model".into() };
-        let after = crate::file_dialogs::AfterPick::AssistantModel;
-        if app.services.file_dialog.is_some() || app.services.pick_open.is_some() {
-            let _ = app.ask_file(request, after);
-        } else {
-            app.show_file_browser(request, after, false);
-        }
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        app.assistant.status = crate::i18n::fmt(tl!("{name} needs the desktop app."), &[("name", NAME)]);
-    }
-}
-
-/// Phi-4 mini when it is installed, otherwise the first local file.
 fn preferred_model(models: &[String]) -> Option<String> {
-    let phi = wordcraft_sharedai::models::scribe_default().map(|model| model.file);
-    models.iter().find(|path| phi.is_some_and(|file| path.rsplit(['/', '\\']).next() == Some(file))).or_else(|| models.first()).cloned()
+    wordcraft_sharedai::select_text_model(models, "writing")
 }
 
 fn continue_context(app: &WordApp) -> String {
@@ -503,15 +437,11 @@ fn ask(app: &mut WordApp, action: Option<Action>) -> Result<Value, String> {
     if app.assistant.prompt.chars().count() > 4000 {
         return Err(tl!("Shorten the request to 4000 characters.").into());
     }
-    let model = app.session.prefs.assistant_model.clone();
-    if model.is_empty() {
-        return Err(tl!("Set up Scribe in Settings first.").into());
-    }
     let msgs = messages(action, &app.assistant.prompt, &text);
     let job = spawn(Work::Writing, move |tx, cancel| {
         let chunks = tx.clone();
-        let r = wordcraft_sharedai::chat_file(
-            &model,
+        let r = wordcraft_sharedai::chat_auto(
+            "writing",
             &msgs,
             &wordcraft_sharedai::Params {
                 max_tokens: Some(1024),
@@ -591,6 +521,15 @@ fn apply(app: &mut WordApp, mode: &str) -> Result<Value, String> {
 }
 
 pub fn command(app: &mut WordApp, id: &str, params: &Value) -> Option<Result<Value, String>> {
+    if id == "ui.assistant.downloadModel" {
+        return Some(
+            params.get("model").and_then(Value::as_str).ok_or_else(|| "model is required".to_string()).and_then(|id| download_model(app, id)),
+        );
+    }
+    if id == "ui.assistant.addModel" {
+        return Some(params.get("path").and_then(Value::as_str).ok_or_else(|| "path is required".to_string()).and_then(|path| add_model(app, path)));
+    }
+
     if !matches!(id, "ui.assistant.ask" | "ui.assistant.state" | "ui.assistant.apply" | "ui.assistant.stop" | "ui.assistant.discard") {
         return None;
     }
@@ -651,9 +590,6 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
     if !app.assistant.asked_models && app.assistant.job.is_none() {
         refresh_models(app);
     }
-    let work = app.assistant.job.as_ref().map(|j| j.work);
-    let busy = work.is_some();
-
     ui.horizontal_top(|ui| {
         let (rect, _) = ui.allocate_exact_size(egui::vec2(32.0, 32.0), egui::Sense::hover());
         let t = crate::theme::Tokens::get(ui.ctx());
@@ -669,29 +605,6 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
     });
     ui.add_space(8.0);
 
-    ui.collapsing(tl!("Settings"), |ui| {
-        model_downloads(app, ui, busy);
-        // Model choice, only when there is a choice to make.
-        if app.assistant.models.len() > 1 {
-            ui.horizontal(|ui| {
-                ui.label(tl!("Model"));
-                let mut model = app.session.prefs.assistant_model.clone();
-                craft_ui::ComboBox::from_id_salt("assistant_model").selected_text(model.clone()).show_ui(ui, |ui| {
-                    for m in &app.assistant.models {
-                        ui.selectable_value(&mut model, m.clone(), m);
-                    }
-                });
-                if model != app.session.prefs.assistant_model {
-                    let _ = app.run("assistant.settings", json!({"model": model}));
-                }
-            });
-            ui.add_space(6.0);
-        }
-
-        if ui.add_enabled(!busy && !cfg!(target_arch = "wasm32"), egui::Button::new(tl!("Choose Model File…"))).clicked() {
-            choose_model_file(app);
-        }
-    });
     let work = app.assistant.job.as_ref().map(|j| j.work);
     let busy = work.is_some();
     match work {
@@ -724,24 +637,10 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
         return;
     }
 
-    // First run: no model yet.
     if app.assistant.listed && app.assistant.models.is_empty() {
-        ui.label(crate::i18n::fmt(tl!("{name} needs a language model before it can write."), &[("name", NAME)]));
-        ui.add_space(6.0);
-        if let Some(model) = wordcraft_sharedai::models::scribe_default()
-            && ui.add_enabled(!busy, egui::Button::new(tl!("Download Phi-4 mini"))).clicked()
-            && let Err(e) = download_model(app, model.id)
-        {
-            app.assistant.status = e;
-        }
-        ui.label(egui::RichText::new(tl!("Phi-4 mini is the default. About 2.5 GB, MIT license. It stays on this computer.")).small().weak());
-        ui.add_space(4.0);
-        if ui.add_enabled(!busy && !cfg!(target_arch = "wasm32"), egui::Button::new(tl!("Choose Model File…"))).clicked() {
-            choose_model_file(app);
-        }
-        if !app.assistant.status.is_empty() {
-            ui.add_space(4.0);
-            ui.label(egui::RichText::new(app.assistant.status.as_str()).small());
+        ui.label(tl!("The local assistant is not ready. Open Enki to set up text generation."));
+        if ui.button(tl!("Retry")).clicked() {
+            refresh_models(app);
         }
         return;
     }
@@ -832,25 +731,21 @@ mod tests {
         WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text(text)), crate::Services::default())
     }
     #[test]
-    #[cfg(not(target_arch = "wasm32"))]
-    fn choosing_a_model_opens_the_desktop_model_browser() {
+    fn scribe_keeps_model_selection_out_of_the_pane() {
+        use egui_kittest::kittest::Queryable;
         let mut app = app("test");
-        assert!(app.file_browser.open.is_none());
-        choose_model_file(&mut app);
-        assert!(app.file_browser.open.is_some());
-    }
-
-    #[test]
-    fn choosing_a_model_uses_the_host_picker_before_the_builtin_browser() {
-        let mut app = app("test");
-        app.services.file_dialog = Some(Box::new(|request| {
-            assert!(matches!(request, crate::file_dialogs::FileDialogRequest::Open { purpose } if purpose == "model"));
-            let (tx, rx) = std::sync::mpsc::channel();
-            tx.send(Ok(vec![])).unwrap();
-            rx
-        }));
-        choose_model_file(&mut app);
-        assert!(app.file_browser.open.is_none());
+        app.assistant.asked_models = true;
+        app.assistant.models = vec!["private-model-name".into()];
+        app.session.prefs.assistant_model = "private-model-name".into();
+        let mut h = egui_kittest::Harness::builder()
+            .with_size(egui::vec2(480.0, 800.0))
+            .with_context_setup(|ctx| ctx.set_fonts(crate::theme::font_definitions(false, false)))
+            .build_ui_state(|ui, app| pane(app, ui), app);
+        h.run_steps(2);
+        assert!(h.query_by_label("Send").is_some());
+        for label in ["Settings", "Model", "private-model-name", "Choose model…"] {
+            assert!(h.query_by_label(label).is_none(), "model control visible: {label}");
+        }
     }
 
     fn suggestion(app: &mut WordApp, text: &str, paragraph: bool) {

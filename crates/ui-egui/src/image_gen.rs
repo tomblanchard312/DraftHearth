@@ -237,37 +237,21 @@ fn fields(app: &mut WordApp, ui: &mut egui::Ui) {
             let label = ui.label(tl!("Steps"));
             ui.add(egui::TextEdit::singleline(&mut app.image_gen.steps).desired_width(48.0)).labelled_by(label.id);
         });
-        ui.label(tl!("Enki recommends the model and sampling settings for each CPU or GPU default. Existing model versions remain available."));
+        ui.label(tl!("Enki chooses the image engine and sampling settings for the selected processor."));
     }
 }
 
 fn model_row(app: &mut WordApp, ui: &mut egui::Ui, busy: bool) {
     #[cfg(not(target_arch = "wasm32"))]
     let previous = app.image_gen.model.clone();
-    ui.horizontal(|ui| {
-        let model_label = ui.label(tl!("Model"));
-        let selected = if app.image_gen.model.is_empty() { tl!("Model").to_string() } else { app.image_gen.model.clone() };
-        let model_response = craft_ui::ComboBox::from_id_salt("nisaba-image-model").selected_text(selected).show_ui(ui, |ui| {
-            for id in app.image_gen.models.clone() {
-                ui.selectable_value(&mut app.image_gen.model, id.clone(), id);
-            }
-        });
-        model_response.response.labelled_by(model_label.id);
-        if ui.add_enabled(!busy, egui::Button::new(tl!("Refresh"))).clicked() {
-            refresh(app);
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        if !app.image_gen.model.trim().is_empty()
-            && !sharedai_client::image_model_present(app.image_gen.model.trim())
-            && ui.add_enabled(!busy, egui::Button::new(tl!("Download selected model"))).clicked()
-        {
-            start_download(app);
-        }
-    });
-    ui.horizontal(|ui| {
-        let label = ui.label(tl!("Model id"));
-        ui.add(egui::TextEdit::singleline(&mut app.image_gen.model).desired_width(240.0)).labelled_by(label.id);
-    });
+    ui.label(tl!("Enki selects image generation behind the scenes."));
+    #[cfg(not(target_arch = "wasm32"))]
+    if !app.image_gen.model.is_empty()
+        && !sharedai_client::image_model_present(app.image_gen.model.trim())
+        && ui.add_enabled(!busy, egui::Button::new(tl!("Set up image generation"))).clicked()
+    {
+        start_download(app);
+    }
     #[cfg(not(target_arch = "wasm32"))]
     {
         ui.add_enabled_ui(!busy, |ui| {
@@ -325,11 +309,11 @@ fn generate(app: &mut WordApp) {
 #[cfg(not(target_arch = "wasm32"))]
 fn request(app: &mut WordApp) -> Option<sharedai_client::ImageRequest> {
     if app.image_gen.model.trim().is_empty() {
-        app.image_gen.status = "Name a diffusion model.".into();
+        app.image_gen.status = "Choose a processor default to set up image generation.".into();
         return None;
     }
     if sharedai_client::image_profile(app.image_gen.model.trim()).is_some() && !sharedai_client::image_model_present(app.image_gen.model.trim()) {
-        app.image_gen.status = "Download the selected image model first.".into();
+        app.image_gen.status = "Set up image generation first.".into();
         return None;
     }
     if app.image_gen.prompt.trim().is_empty() {
@@ -483,7 +467,7 @@ fn apply(app: &mut WordApp, outcome: Outcome) {
                 app.image_gen.model = first.clone();
             }
             app.image_gen.status = if app.image_gen.models.is_empty() {
-                "Enki recommends Z-Image-Turbo for CPU and Qwen for a suitable GPU. Download the selected model or choose an installed one.".into()
+                "Image generation needs setup. Use Set up image generation or configure it in Enki.".into()
             } else {
                 String::new()
             };
@@ -585,7 +569,14 @@ fn start_download(app: &mut WordApp) {
             let _ = tx.send(Outcome::Progress { done, total });
         });
         let outcome = match result {
-            Ok(report) => Outcome::Downloaded { registered: report.registered, message: report.message },
+            Ok(report) => Outcome::Downloaded {
+                registered: report.registered,
+                message: if report.registered {
+                    "Image generation is ready.".into()
+                } else {
+                    "Image generation setup is incomplete. Check Enki and retry.".into()
+                },
+            },
             Err(e) => Outcome::Downloaded { registered: false, message: e.to_string() },
         };
         let _ = tx.send(outcome);

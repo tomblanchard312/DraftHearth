@@ -16,6 +16,9 @@ pub mod local;
 /// Pinned assistant models and verified downloads.
 pub mod models;
 
+mod selection;
+pub use selection::select_text_model;
+
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -653,3 +656,23 @@ pub fn chat(
 
 #[cfg(test)]
 mod tests;
+
+/// Discover registered language models. No files are copied or models downloaded.
+pub fn available_text_models() -> Result<Vec<String>, Error> {
+    let endpoint = endpoint("")?;
+    ensure_running(&endpoint, Some(&endpoint))?;
+    let models = list_models(&endpoint, "nisaba")?;
+    Ok(models.into_iter().filter(|id| select_text_model(std::slice::from_ref(id), "writing").is_some()).collect())
+}
+/// Route a writing or code request through Enki using the installed model appropriate to it.
+pub fn chat_auto(task: &str, messages: &[Message], params: &Params, cancel: &AtomicBool, on_chunk: impl FnMut(&str)) -> Result<Summary, Error> {
+    if cancel.load(Ordering::Relaxed) {
+        return Err(Error::Cancelled);
+    }
+    let endpoint = endpoint("")?;
+    ensure_running(&endpoint, Some(&endpoint))?;
+    let models = list_models(&endpoint, "nisaba")?;
+    let model = select_text_model(&models, task)
+        .ok_or_else(|| Error::Invalid("The local assistant is not ready. Configure text generation in Enki and retry.".into()))?;
+    chat(&endpoint, "nisaba", &model, messages, params, Timeouts::default(), cancel, on_chunk)
+}

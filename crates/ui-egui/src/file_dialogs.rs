@@ -92,8 +92,6 @@ pub(crate) enum AfterPick {
     ComparePath {
         revised: bool,
     },
-    /// Add the picked GGUF file as the writing assistant's model.
-    AssistantModel,
     VbaOpen,
     VbaDocument {
         document: u64,
@@ -321,10 +319,6 @@ impl WordApp {
             AfterPick::VbaSave { module } => {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
                 self.run("ui.vba.save", json!({"path": path, "module": module}))
-            }
-            AfterPick::AssistantModel => {
-                let Some(path) = picked else { return Ok(json!({"cancelled": true})) };
-                crate::assistant_pane::add_model(self, &path)
             }
             AfterPick::ComparePath { revised } => {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };

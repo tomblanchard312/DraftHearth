@@ -6,7 +6,7 @@ use egui::{Color32, FontId, Painter, Pos2, Rect, Shape, Stroke, pos2, vec2};
 
 const SCRIBE_PNG: &[u8] = include_bytes!("../../../assets/icons/scribe.png");
 
-fn scribe_texture(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+pub(crate) fn scribe_texture(ctx: &egui::Context) -> Option<egui::TextureHandle> {
     let key = egui::Id::unique("nisaba.scribe.icon");
     if let Some(texture) = ctx.data(|d| d.get_temp::<egui::TextureHandle>(key)) {
         return Some(texture);

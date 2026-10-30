@@ -83,6 +83,9 @@ format and parity documentation is in [docs/](docs/).
 
 ## License and credits
 
+The vendored Enki client/protocol snapshot retains its existing `UNLICENSED` designation;
+DraftHearth's license does not grant rights to that code. See [snapshot provenance](vendor/README.md).
+
 MIT OR Apache-2.0, at your option. WordCraft is copyright (c) 2026 ArtCraft Team and the WordCraft
 contributors; Nisaba's changes are copyright (c) 2026 Tom Blanchard. See [NOTICE](NOTICE) and
 [ATTRIBUTION.md](ATTRIBUTION.md) for bundled material. DraftHearth is not made, sponsored or endorsed by

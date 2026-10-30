@@ -1,6 +1,70 @@
 # Upstream integration
 
-> **Last updated:** 2026-10-28 · **Status:** WordCraft upstream merged through `c4fafc21` as `0a873432`; workspace check and focused regressions passed. The full UI suite and native Windows installer were not validated in this refresh.
+> **Last updated:** 2026-10-30 · **Status:** Integration through `5b5810fe`, with fork branding/Enki/VBA retained and patched ZIP/Tokio dependencies. Current validation is recorded in the 2026-10-30 section below; older sections describe earlier refreshes.
+
+
+## 2026-10-30 integration
+
+WordCraft `5b5810fe1f6f815acc3fda27619f61d9bc08b615` brings 54 upstream commits
+onto DraftHearth `ff0eea9b`. All upstream history is retained. Twelve conflicted files
+were reconciled, keeping both projects' contributor entries and progress records.
+
+- Keep DraftHearth's name, app IDs, original icons, release links and hidden Discord default.
+  Do not re-enable the upstream Windows self-updater or its WordCraft identity. The unused
+  `craft-update` workspace dependency and its new upstream-only icon constant are omitted.
+- Adopt upstream's optional saved-author preference, including a deliberately blank name.
+- Snapshot the existing Enki image client/protocol under `vendor/`, retaining its original
+  `UNLICENSED` designation. GitHub/clean-clone builds no longer require a sibling Enki
+  source checkout; the daemon repository and installed application are untouched.
+- Retain the Enki client, Scribe formatting safeguards, compiler-checked VBA module replacement,
+  undo, unsaved-source close prompt, Ninimma picker and complete runtime staging.
+- Include upstream's DOCX preservation, table copy/cut, font-size, Arabic Backspace,
+  chart fallback fonts, parser bounds, connector performance and Flatpak printing fixes.
+
+### Dependency investigation
+
+The fresh RustSec audit initially reports three ZIP extraction advisories
+(`RUSTSEC-2026-0367`, `RUSTSEC-2026-0368`, `RUSTSEC-2026-0369`) against `zip 3.0.0`.
+DraftHearth reads bounded entries into memory rather than calling `ZipArchive::extract`
+or `ZipStreamReader::extract`; the affected filesystem extraction APIs have no callers
+in this workspace. Nevertheless, move the shared ZIP dependency to patched `9.1.3`
+and validate the document import/export regression suites. Update Tokio from `1.53.2`
+to `1.53.3` for `RUSTSEC-2026-0386` (AsyncFd I/O safety). Retain upstream's
+`ctutils 0.4.7` security patch and Windows clipboard update.
+
+Unmaintained transitive dependencies (`proc-macro-error`, `zbus_names`, `zvariant`,
+`zvariant_derive`) have no patched versions listed by RustSec. These maintenance warnings
+remain visible; they are not suppressed. Upstream's SonarCloud critical findings examined
+in this review were cognitive-complexity warnings, not confirmed runtime failures.
+RustSec results do not prove that every SonarCloud dependency-risk condition is resolved.
+
+The ODT inflation-budget fixture now falsifies both ZIP headers; ZIP 9 rejects output
+beyond the declared size before yielding payload bytes. The test checks that rejection,
+retains declared-size refusal and repeated-use accounting, and confirms a legitimate
+following picture remains readable. Production size limits are unchanged.
+
+### Validation of this integration
+
+- `cargo xtask ci`: all nine gates pass (formatting, runtime packaging, Clippy,
+  workspace tests, interface audit, doctests, asset attribution, layers and WASM).
+- Debug desktop and CLI binaries build successfully with the patched dependencies.
+- VBA compatibility runner against the rebuilt real headless CLI: 37 passed,
+  zero failed, zero skipped, including content-control edits and DOCM preservation.
+- Isolated native Linux window with the existing Enki daemon: a generated module
+  passes the bundled compiler, Replace module removes the previous source, Undo
+  restores it, and closing dirty VBA shows Save / Don't Save / Cancel. Cancel keeps
+  the source; Save opens the picker without exiting. The screenshot was inspected.
+- A clean staged source export, with no sibling Enki checkout, resolves both Enki
+  packages inside the repository. This is a dependency-resolution check, not a
+  second complete clean-room compilation.
+- Fresh RustSec database: zero known vulnerabilities, four unmaintained-package
+  warnings; no advisory suppression was added.
+- Existing fork/upstream contributor entries are preserved exactly. Enki source
+  matches the previous local snapshot after repository formatting; the daemon
+  repository and current installed app were not changed.
+
+Native Windows/macOS/FreeBSD execution and installer acceptance were not rerun.
+Hosted checks are separate from the local evidence above.
 
 This integration brings WordCraft `438775ce` into DraftHearth, starting from `fa787519`.
 At the recorded upstream tip, DraftHearth was 296 commits behind and 12 ahead. The existing local

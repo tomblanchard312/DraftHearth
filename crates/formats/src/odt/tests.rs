@@ -54,12 +54,14 @@ fn zip_of(entries: &[(&str, &[u8])]) -> Vec<u8> {
     z.finish().unwrap().into_inner()
 }
 
-/// `bytes` (a package) with the size its central directory declares for `name` set to `size`.
+/// `bytes` with both headers declaring `size`; ZIP 9 rejects inconsistent headers before inflation.
 fn declare_size(mut bytes: Vec<u8>, name: &str, size: u32) -> Vec<u8> {
     let at = (0..bytes.len())
         .find(|&i| bytes[i..].starts_with(b"PK\x01\x02") && bytes.get(i + 46..).is_some_and(|r| r.starts_with(name.as_bytes())))
         .unwrap();
+    let local = u32::from_le_bytes(bytes[at + 42..at + 46].try_into().unwrap()) as usize;
     bytes[at + 24..at + 28].copy_from_slice(&size.to_le_bytes());
+    bytes[local + 22..local + 26].copy_from_slice(&size.to_le_bytes());
     bytes
 }
 
@@ -95,14 +97,18 @@ fn pictures_over_the_budget_are_not_inflated() {
     assert_eq!(pics.get(&mut z, "big.png"), None);
     assert_eq!(pics.room, 1000);
     assert_eq!(pics.get(&mut z, "ok.png").map(|d| d.len()), Some(300));
-    // One inflating to more than it declares stops a byte past the budget and uses it up:
-    // nothing is inflated after it.
+    // ZIP 9 rejects a stream exceeding its declared size before returning inflated bytes.
+    // A forged size in both headers must not consume or cache the oversized picture.
     let liar = declare_size(zip_of(&[("liar.png", &[0u8; 5000]), ("ok.png", &[5u8; 10])]), "liar.png", 10);
     let mut z = archive(&liar);
+    let mut inflated = Vec::new();
+    assert!(z.by_name("liar.png").unwrap().take(1001).read_to_end(&mut inflated).is_err());
+    assert!(inflated.is_empty());
     let mut pics = Pictures::new(1000);
     assert_eq!(pics.get(&mut z, "liar.png"), None);
-    assert_eq!(pics.room, 0);
-    assert_eq!(pics.get(&mut z, "ok.png"), None);
+    assert_eq!(pics.room, 1000);
+    assert_eq!(pics.get(&mut z, "ok.png").map(|d| d.len()), Some(10));
+    assert_eq!(pics.room, 990);
 }
 
 #[test]

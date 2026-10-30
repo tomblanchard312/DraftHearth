@@ -47,7 +47,7 @@ zbus = "=5.19.0"
 # Comment times in the user's own time zone (`local_time.rs`); the web app asks the browser.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
-sharedai-client = { path = "../../../Enki/crates/client" }
+sharedai-client = { path = "../../vendor/enki-client" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # The browser clock (`SystemTime::now()`/`Instant::now()` panic on wasm32).

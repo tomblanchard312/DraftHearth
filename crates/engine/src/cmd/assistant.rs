@@ -1,7 +1,7 @@
 //! DraftHearth's writing assistant ([`wordcraft_brand::ASSISTANT_NAME`]): put a model's suggestion
 //! into the document as tracked changes.
 //!
-//! The model runs locally in the UI process (driven by the assistant pane; users only
+//! The model runs through the local Enki service (driven by the assistant pane; users only
 //! see the assistant's name); the engine only applies the result, so scripts, the CLI and MCP
 //! agents get the same behaviour.
 //! Suggestions always land as revisions by a separate author, so the writer reviews them with
@@ -71,10 +71,88 @@ fn apply(s: &mut Session, v: &Value) -> CmdResult {
     }
     let (track, writer) = (s.doc.settings.track_changes, std::mem::replace(&mut s.author, author()));
     s.doc.settings.track_changes = true;
-    let r = s.run("edit.pasteSpecial", &json!({"as": "text", "text": text}));
+    let r = (|| {
+        if !after && rewrite_in_place(s, &text)? {
+            return Ok(json!({}));
+        }
+        s.run("edit.pasteSpecial", &json!({"as": "text", "text": text}))
+    })();
     s.doc.settings.track_changes = track;
     s.author = writer;
     r.map(|_| json!({"applied": true, "author": author(), "mode": if after { "after" } else { "replace" }}))
+}
+
+/// Keep paragraph properties and untouched runs when a rewrite retains its paragraph structure.
+fn rewrite_in_place(s: &mut Session, text: &str) -> Result<bool, CmdError> {
+    use super::tools::{Op, lcs_ops};
+    let (a, b) = s.sel.ordered();
+    let paths = s.doc.paths_between(&a, &b);
+    let lines: Vec<_> = text.split('\n').collect();
+    let lines = if lines.len() != paths.len() { text.split("\n\n").collect::<Vec<_>>() } else { lines };
+    if paths.len() != lines.len() {
+        // shortcut: restructuring multiple paragraphs needs Insert until paragraph mapping is available.
+        if paths.len() > 1 {
+            return Err(CmdError::Failed(
+                "This suggestion changes the paragraph structure. Use Insert, or request a rewrite that keeps the original paragraphs.".into(),
+            ));
+        }
+        return Ok(false);
+    }
+    let mut changes = Vec::new();
+    let mut budget = 4_000_000;
+    for (path, new) in paths.iter().zip(lines) {
+        let Some(p) = s.doc.para(a.story, path) else { return Ok(false) };
+        let from = if *path == a.path { a.off } else { 0 };
+        let to = if *path == b.path { b.off } else { p.len() };
+        let old = p.text.get(from..to).ok_or_else(|| CmdError::Failed("Invalid suggestion selection".into()))?;
+        if p.run_ranges().any(|(_, c)| c.del.is_some()) {
+            return Err(CmdError::Failed("Accept or reject existing tracked deletions before applying another rewrite.".into()));
+        }
+        if old.len() > MAX_TEXT_BYTES {
+            return Err(CmdError::Params("The selected paragraph is too long to rewrite safely.".into()));
+        }
+        let old_chars: Vec<_> = old.chars().collect();
+        let new_chars: Vec<_> = new.chars().collect();
+        let mut offset = from;
+        let mut next = 0;
+        let mut old_index = 0;
+        let mut start = None;
+        let mut replacement = String::new();
+        for op in lcs_ops(&old_chars, &new_chars, &mut budget).into_iter().chain(std::iter::once(Op::Same)) {
+            match op {
+                Op::Same => {
+                    if let Some(begin) = start.take() {
+                        let mut anchor = a.clone();
+                        anchor.path = path.clone();
+                        anchor.off = begin;
+                        let mut focus = anchor.clone();
+                        focus.off = offset;
+                        changes.push((Selection { anchor, focus }, std::mem::take(&mut replacement)));
+                    }
+                    offset += old_chars.get(old_index).map_or(0, |c| c.len_utf8());
+                    old_index += 1;
+                    next += 1;
+                }
+                Op::Del => {
+                    start.get_or_insert(offset);
+                    offset += old_chars.get(old_index).map_or(0, |c| c.len_utf8());
+                    old_index += 1;
+                }
+                Op::Ins => {
+                    start.get_or_insert(offset);
+                    if let Some(c) = new_chars.get(next) {
+                        replacement.push(*c);
+                    }
+                    next += 1;
+                }
+            }
+        }
+    }
+    for (selection, replacement) in changes.into_iter().rev() {
+        s.sel = selection;
+        super::paste_text(s, &replacement)?;
+    }
+    Ok(true)
 }
 
 #[cfg(test)]
@@ -124,6 +202,64 @@ mod tests {
         let body = s.doc.plain_text(wordcraft_doc::StoryRef::Body);
         assert!(body.starts_with("First."), "{body:?}");
         assert!(body.contains("Second.") && body.contains("Third."), "{body:?}");
+    }
+
+    #[test]
+    fn multi_paragraph_suggestions_keep_breaks_and_unchanged_formatting() {
+        let mut s = session("Heading\rFirst wrng paragraph.\rSecond wrng paragraph.");
+        s.run("select.text", &json!({"text":"First"})).unwrap();
+        s.run("format.bold", &json!({})).unwrap();
+        let paths = s.doc.para_paths(wordcraft_doc::StoryRef::Body);
+        s.doc.para_mut(wordcraft_doc::StoryRef::Body, &paths[0]).unwrap().props.style = Some("Heading1".into());
+        let props: Vec<_> = paths.iter().map(|path| s.doc.para(wordcraft_doc::StoryRef::Body, path).unwrap().props.clone()).collect();
+        s.run("select.all", &json!({})).unwrap();
+        s.run("assistant.apply", &json!({"text":"Heading\nFirst correct paragraph.\nSecond correct paragraph."})).unwrap();
+        s.run("review.acceptAll", &json!({})).unwrap();
+        let paths = s.doc.para_paths(wordcraft_doc::StoryRef::Body);
+        assert_eq!(paths.len(), 3, "Accept All must preserve paragraph breaks");
+        assert_eq!(paths.iter().map(|path| s.doc.para(wordcraft_doc::StoryRef::Body, path).unwrap().props.clone()).collect::<Vec<_>>(), props);
+        let first = s.doc.para(wordcraft_doc::StoryRef::Body, &paths[1]).unwrap();
+        assert!(first.run_ranges().any(|(r, c)| r.start == 0 && c.bold == Some(true)), "unchanged bold text must stay bold");
+        assert_eq!(first.text, "First correct paragraph.");
+        let reopened = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+        let saved_paths = reopened.para_paths(wordcraft_doc::StoryRef::Body);
+        assert_eq!(saved_paths.len(), 3);
+        assert_eq!(reopened.para(wordcraft_doc::StoryRef::Body, &saved_paths[0]).unwrap().props.style.as_deref(), Some("Heading1"));
+        assert!(
+            reopened.para(wordcraft_doc::StoryRef::Body, &saved_paths[1]).unwrap().run_ranges().any(|(r, c)| r.start == 0 && c.bold == Some(true))
+        );
+
+        s.run("edit.undo", &json!({})).unwrap();
+        s.run("review.rejectAll", &json!({})).unwrap();
+        assert_eq!(s.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "Heading\nFirst wrng paragraph.\nSecond wrng paragraph.");
+    }
+
+    #[test]
+    fn tracked_paste_replacement_does_not_delete_new_paragraph_marks() {
+        let mut s = session("One\rTwo\rThree");
+        s.run("select.all", &json!({})).unwrap();
+        s.doc.settings.track_changes = true;
+        s.run("edit.pasteSpecial", &json!({"as":"text","text":"New one\nNew two"})).unwrap();
+        s.run("review.acceptAll", &json!({})).unwrap();
+        assert_eq!(s.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "New one\nNew two");
+    }
+
+    #[test]
+    fn unicode_and_partial_selections_preserve_surrounding_text() {
+        let mut s = session("Avant café mal écrit après.");
+        s.run("select.text", &json!({"text":"café mal écrit"})).unwrap();
+        s.run("assistant.apply", &json!({"text":"café bien écrit"})).unwrap();
+        s.run("review.acceptAll", &json!({})).unwrap();
+        assert_eq!(s.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "Avant café bien écrit après.");
+    }
+
+    #[test]
+    fn a_flattened_reply_cannot_replace_multiple_paragraphs() {
+        let mut s = session("One\rTwo\rThree");
+        s.run("select.all", &json!({})).unwrap();
+        assert!(s.run("assistant.apply", &json!({"text":"One Two Three"})).is_err());
+        assert_eq!(s.doc.para_paths(wordcraft_doc::StoryRef::Body).len(), 3);
+        assert!(s.doc.revisions.is_empty());
     }
 
     #[test]

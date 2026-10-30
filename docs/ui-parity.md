@@ -1,5 +1,7 @@
 # UI parity with Microsoft Word
 
+> **Scribe update: 2026-10-29** · Scribe rewrites preserve paragraph properties and unchanged character formatting when the paragraph structure is retained. New tracked paragraph breaks no longer inherit a deletion marker; Accept All keeps them. Regression checks cover Accept/Reject, Unicode and DOCX round-trip. Native Linux validation; other native platforms remain unverified. Readiness estimates unchanged.
+
 > **Scribe identity:** 2026-10-26 · Approved blue S/reed-tip artwork is embedded in the ribbon and assistant pane; light/dark headless renders checked.
 
 > **Upstream integration:** 2026-10-28 · WordCraft `c4fafc21` merged as `0a873432`, bringing 179 commits since the previous shared point and major UI, engine, document, format, layout, font and PDF modularization. DraftHearth features were carried forward; local validation scope and remaining limits are in [integration evidence](upstream-sync.md).

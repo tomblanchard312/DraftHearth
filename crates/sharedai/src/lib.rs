@@ -1,5 +1,5 @@
 //! A small, blocking client for the Enki daemon (`sharedai-daemon`): list its models and stream a
-//! chat reply. DraftHearth does not link llama.cpp; the daemon's worker does.
+//! chat reply. Qanloom does not link llama.cpp; the daemon's worker does.
 //!
 //! SharedAI runs models on the user's own machine. Its wire contract (docs/INFERENCE.md there) is
 //! newline-delimited JSON over a private Unix socket: negotiate a protocol version, send one
@@ -138,7 +138,7 @@ impl From<std::io::Error> for Error {
 }
 
 /// The socket to use: `configured` if non-empty, else `$SHAREDAI_SOCKET`, else
-/// `$XDG_RUNTIME_DIR/sharedai/ipc.sock` (the DraftHearth desktop's convention).
+/// `$XDG_RUNTIME_DIR/sharedai/ipc.sock` (the Qanloom desktop's convention).
 pub fn endpoint(configured: &str) -> Result<PathBuf, Error> {
     let configured = configured.trim();
     if !configured.is_empty() {

@@ -6,7 +6,7 @@
 
 > **Scribe identity:** 2026-10-26 · Approved blue S/reed-tip artwork is embedded in the ribbon and assistant pane; light/dark headless renders checked.
 
-> **Upstream integration:** 2026-10-28 · WordCraft `c4fafc21` merged as `0a873432`, bringing 179 commits since the previous shared point and major UI, engine, document, format, layout, font and PDF modularization. DraftHearth features were carried forward; local validation scope and remaining limits are in [integration evidence](upstream-sync.md).
+> **Upstream integration:** 2026-10-28 · WordCraft `c4fafc21` merged as `0a873432`, bringing 179 commits since the previous shared point and major UI, engine, document, format, layout, font and PDF modularization. Qanloom features were carried forward; local validation scope and remaining limits are in [integration evidence](upstream-sync.md).
 
 > **Status update:** 2026-10-28 · Scribe and Developer chat and completion go through the Enki daemon, with verified model downloads; Developer has a VBA project explorer, source editor, document designer, contextual local chat and separate Phi-4 completion. Readiness estimates unchanged.
 
@@ -98,7 +98,7 @@ Labels → New Document with “One label per recipient” includes all filtered
 
 > 2026-10-26: Corrected host-font and pagination fixture assumptions without disabling Thai or adding test skips; all eight CI gates pass. Product parity estimates remain unchanged.
 
-> 2026-10-26: Upstream integration retained DraftHearth panes, local inference and VBA across native windows; validation and the four pre-existing failures are recorded in [upstream-sync.md](upstream-sync.md).
+> 2026-10-26: Upstream integration retained Qanloom panes, local inference and VBA across native windows; validation and the four pre-existing failures are recorded in [upstream-sync.md](upstream-sync.md).
 
 > 2026-10-26: Owner accepted the current VBA checkpoint; Scribe is the priority. Guarded stale and incomplete suggestions, refused oversized selections, added concise caret continuation and grouped model setup in Settings. Real grammar, shortening and tracked-change review checks passed; broader writing-quality evaluation remains open. Readiness estimates unchanged.
 

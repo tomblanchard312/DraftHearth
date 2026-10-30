@@ -5,25 +5,25 @@
   <id>io.github.tomblanchard312.Nisaba</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT OR Apache-2.0</project_license>
-  <name>DraftHearth</name>
+  <name>Qanloom</name>
   <summary>Write and design documents; open and save Word files</summary>
   <developer id="io.github.tomblanchard312">
     <name>Tom Blanchard</name>
   </developer>
   <description>
     <p>
-      DraftHearth is a fast, open-source word processor with a familiar ribbon: styles, tables, track changes, references, mail merge, and .docx, PDF, ODT, RTF, HTML and Markdown files. It can be driven by AI agents over MCP.
+      Qanloom is a fast, open-source word processor with a familiar ribbon: styles, tables, track changes, references, mail merge, and .docx, PDF, ODT, RTF, HTML and Markdown files. It can be driven by AI agents over MCP.
     </p>
     <p>
-      DraftHearth is based on WordCraft, the open-source word processor by the ArtCraft team and community.
+      Qanloom is based on WordCraft, the open-source word processor by the ArtCraft team and community.
     </p>
   </description>
   <launchable type="desktop-id">io.github.tomblanchard312.Nisaba.desktop</launchable>
   <icon type="stock">io.github.tomblanchard312.Nisaba</icon>
   <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI validates): no vcs-browser. -->
-  <url type="homepage">https://github.com/tomblanchard312/DraftHearth</url>
-  <url type="bugtracker">https://github.com/tomblanchard312/DraftHearth/issues</url>
-  <url type="help">https://github.com/tomblanchard312/DraftHearth</url>
+  <url type="homepage">https://github.com/tomblanchard312/Qanloom</url>
+  <url type="bugtracker">https://github.com/tomblanchard312/Qanloom/issues</url>
+  <url type="help">https://github.com/tomblanchard312/Qanloom</url>
   <categories>
     <category>Office</category>
     <category>WordProcessor</category>
@@ -34,7 +34,7 @@
     <keyword>document</keyword>
     <keyword>writer</keyword>
   </keywords>
-  <!-- Screenshots return once there is a DraftHearth screenshot in this repository. -->
+  <!-- Screenshots return once there is a Qanloom screenshot in this repository. -->
   <branding>
     <color type="primary" scheme_preference="light">#cfc6f2</color>
     <color type="primary" scheme_preference="dark">#3b2f7a</color>
@@ -47,7 +47,7 @@
     <control>pointing</control>
     <control>tablet</control>
   </supports>
-  <!-- Document types DraftHearth opens (#295), as in the desktop entry's MimeType=. -->
+  <!-- Document types Qanloom opens (#295), as in the desktop entry's MimeType=. -->
   <provides>
     <binary>nisaba</binary>
     <mediatype>application/vnd.openxmlformats-officedocument.wordprocessingml.document</mediatype>

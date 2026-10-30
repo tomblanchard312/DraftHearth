@@ -3,7 +3,7 @@ name = "wordcraft-sharedai"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "DraftHearth's client for the Enki daemon"
+description = "Qanloom's client for the Enki daemon"
 
 [lints]
 workspace = true

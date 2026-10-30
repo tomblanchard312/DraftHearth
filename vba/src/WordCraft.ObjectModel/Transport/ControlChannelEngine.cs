@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 namespace WordCraft.ObjectModel.Transport;
 
 /// <summary>
-/// Drives a running Nisaba (or WordCraft) window over its control channel (<c>nisaba --control PORT</c>):
+/// Drives a running Qanloom (or WordCraft) window over its control channel (<c>qanloom --control PORT</c>):
 /// one JSON object per line on 127.0.0.1, authorised with the window's key.
 /// See docs/control-protocol.md in the WordCraft repository.
 /// </summary>
@@ -43,7 +43,7 @@ public sealed class ControlChannelEngine : IEngine
             var dirs = SettingsDirs();
             var file = dirs.Select(d => Path.Combine(d, name)).FirstOrDefault(File.Exists)
                 ?? throw new FileNotFoundException(
-                    $"No control key {name} in {string.Join(" or ", dirs)}. Start Nisaba with --control {port}, or set WORDCRAFT_CONTROL_KEY.");
+                    $"No control key {name} in {string.Join(" or ", dirs)}. Start Qanloom with --control {port}, or set WORDCRAFT_CONTROL_KEY.");
             key = File.ReadAllText(file).Trim();
         }
         return new ControlChannelEngine(host, port, key);

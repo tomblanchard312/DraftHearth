@@ -1,6 +1,6 @@
 # WordCraft parity with Microsoft Word
 
-> **Integration update: 2026-10-30** · Integrated 54 upstream commits through `5b5810fe`, preserving DraftHearth branding, Enki, Scribe, VBA and runtime packaging. ZIP and Tokio advisories are patched; see [integration evidence](upstream-sync.md). Platform readiness estimates are unchanged.
+> **Integration update: 2026-10-30** · Integrated 54 upstream commits through `5b5810fe`, preserving Qanloom branding, Enki, Scribe, VBA and runtime packaging. ZIP and Tokio advisories are patched; see [integration evidence](upstream-sync.md). Platform readiness estimates are unchanged.
 
 
 > **Status update:** 2026-10-28 · Scribe uses the Enki daemon with verified model downloads; the VBA workspace includes source editing, document design, local chat and reviewed completion. WordCraft upstream was merged through `c4fafc21`; parity estimates remain unchanged.

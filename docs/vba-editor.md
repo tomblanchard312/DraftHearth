@@ -96,7 +96,7 @@ Format references: [MS-OVBA](https://learn.microsoft.com/en-us/openspecs/office_
 
 - Real local Phi-4 mini completion generated an expression, inserted it at the requested code caret, and the resulting VBA passed the existing checker.
 - A headless editor session loaded embedded modules, changed a module, added one, saved `.docm`, and reopened both sources with the document text preserved. Exporting `.bas` preserved the source exactly.
-- 35 .NET tests pass against both FakeEngine and the real Linux headless DraftHearth engine. Embedded Cleanup macros execute, save/reopen with text and formatting preserved, and execute again from saved source; separate CLI runs preserve the binary VBA project exactly.
+- 35 .NET tests pass against both FakeEngine and the real Linux headless Qanloom engine. Embedded Cleanup macros execute, save/reopen with text and formatting preserved, and execute again from saved source; separate CLI runs preserve the binary VBA project exactly.
 - 35 .NET synthetic/FakeEngine tests, four editor tests (including the optional real helper check), and the undo/signature engine regression passed. Formatting, Clippy, asset attribution, dependency layering and the 18-crate WASM check passed.
 - Full workspace validation is still blocked by four font/layout tests outside this change. Native Word, native Windows/macOS runtime behavior, form-design editing and GUI macro execution were not validated.
 

@@ -82,6 +82,10 @@ rm -rf "$WORK"
 mkdir -p "$STAGE/bin" "$STAGE/share/applications" "$STAGE/share/mime/packages" "$STAGE/share/metainfo" \
   "$STAGE/share/icons" "$STAGE/share/doc/wordcraft"
 install -m 755 "$BIN/wordcraft" "$BIN/wordcraft-cli" "$STAGE/bin/"
+ln -s wordcraft "$STAGE/bin/nisaba"
+ln -s wordcraft-cli "$STAGE/bin/nisaba-cli"
+ln -s wordcraft "$STAGE/bin/qanloom"
+ln -s wordcraft-cli "$STAGE/bin/qanloom-cli"
 RUNTIME_RID="freebsd-$(case "$ARCH" in x86_64|amd64) echo x64;; *) echo arm64;; esac)"
 python3 "$ROOT/packaging/stage-runtimes.py" --rid "$RUNTIME_RID" --out "$STAGE/lib/wordcraft/runtimes"
 

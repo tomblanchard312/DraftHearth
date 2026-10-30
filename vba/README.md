@@ -1,10 +1,10 @@
-# DraftHearth VBA
+# Qanloom VBA
 
-Run Word VBA macros against DraftHearth (or upstream [WordCraft](https://github.com/storytold/wordcraft)). VBA is transpiled to VB.NET, compiled in memory with Roslyn, checked against an allow-list, and run against a Word object model implemented over the app's command protocol.
+Run Word VBA macros against Qanloom (or upstream [WordCraft](https://github.com/storytold/wordcraft)). VBA is transpiled to VB.NET, compiled in memory with Roslyn, checked against an allow-list, and run against a Word object model implemented over the app's command protocol.
 
-This folder was the separate `wordcraft-vba` repository; its history is kept in DraftHearth's. It is an optional .NET component: `cargo` doesn't build it and `cargo xtask ci` doesn't run it. The C# namespaces keep their `WordCraft.*` names, as DraftHearth's Rust crates do. Licence: MIT OR Apache-2.0, like the rest of the repository.
+This folder was the separate `wordcraft-vba` repository; its history is kept in Qanloom's. It is an optional .NET component: `cargo` doesn't build it and `cargo xtask ci` doesn't run it. The C# namespaces keep their `WordCraft.*` names, as Qanloom's Rust crates do. Licence: MIT OR Apache-2.0, like the rest of the repository.
 
-**Status:** early, usable workbench and a limited macro runtime. The desktop editor supports `.bas`/`.cls` source editing, existing-module browsing and `.docm` source updates, with a document designer, icon-based controls toolbox, local coding chat and separately reviewed local code completion. The optional CLI helper transpiles, checks and runs a supported subset of VBA against DraftHearth's document engine. This is not full Word VBA compatibility. Native Microsoft Word execution and repair-free round-trip validation remain unverified. See the [workspace guide](../docs/vba-editor.md) for UI behavior and boundaries.
+**Status:** early, usable workbench and a limited macro runtime. The desktop editor supports `.bas`/`.cls` source editing, existing-module browsing and `.docm` source updates, with a document designer, icon-based controls toolbox, local coding chat and separately reviewed local code completion. The optional CLI helper transpiles, checks and runs a supported subset of VBA against Qanloom's document engine. This is not full Word VBA compatibility. Native Microsoft Word execution and repair-free round-trip validation remain unverified. See the [workspace guide](../docs/vba-editor.md) for UI behavior and boundaries.
 
 ```
 VBA (.bas/.cls) ──► Transpiler ──► VB.NET ──► Roslyn (Option Strict Off) ──► MacroSecurity ──► run
@@ -25,7 +25,7 @@ cd vba
 dotnet build
 dotnet run --project tests/WordCraft.Vba.Tests   # synthetic tests, including FakeEngine
 cargo build --release -p wordcraft-cli --manifest-path ../Cargo.toml
-WCVBA_CLI=../target/release/wordcraft-cli dotnet run --project tests/WordCraft.Vba.Tests   # engine-backed tests on DraftHearth
+WCVBA_CLI=../target/release/wordcraft-cli dotnet run --project tests/WordCraft.Vba.Tests   # engine-backed tests on Qanloom
 
 dotnet run --project src/WordCraft.Vba -- transpile samples/Cleanup.bas
 dotnet run --project src/WordCraft.Vba -- check samples/Evil.bas            # rejected
@@ -36,18 +36,18 @@ dotnet run --project src/WordCraft.Vba -- list report.docm
 dotnet run --project src/WordCraft.Vba -- run report.docm --macro Main --cli ../target/release/wordcraft-cli --save out.docm
 dotnet run --project src/WordCraft.Vba -- pack samples/Cleanup.bas --into plain.docx --out report.docm   # test documents
 
-# a running DraftHearth window
+# a running Qanloom window
 nisaba --control 7981 &
 dotnet run --project src/WordCraft.Vba -- run samples/Cleanup.bas --macro Main --connect 7981
 dotnet run --project src/WordCraft.Vba -- run samples/Cleanup.bas --macro Main --cli ../target/release/wordcraft-cli --doc in.docx --save out.docx
 ```
 
 The helper's executable is named `wcvba` when installed. A command-line engine path passed to
-`--cli` must support DraftHearth's MCP stdio protocol (the workspace build names it `wordcraft-cli`).
+`--cli` must support Qanloom's MCP stdio protocol (the workspace build names it `wordcraft-cli`).
 For a headless run, use `--cli`; `--connect` attaches to a running desktop control channel. The
 optional `--unsafe` switch bypasses the macro allow-list and should only be used for trusted code.
 
-`--connect` reads the window's key from `WORDCRAFT_CONTROL_KEY`, else from `control-key.local-<port>` in DraftHearth's settings folder (`~/.config/nisaba`, or `DraftHearth` under Application Support / `%APPDATA%`), then WordCraft's. `WORDCRAFT_PROFILE_DIR` overrides both, as it does for the app. `Application.Name` is "DraftHearth".
+`--connect` reads the window's key from `WORDCRAFT_CONTROL_KEY`, else from `control-key.local-<port>` in Qanloom's settings folder (`~/.config/nisaba`, or `Nisaba` under Application Support / `%APPDATA%`), then WordCraft's. `WORDCRAFT_PROFILE_DIR` overrides both, as it does for the app. `Application.Name` is "Qanloom".
 
 ## How the object model maps to WordCraft
 
@@ -79,7 +79,7 @@ Covers: `Integer`/`Long`/`Currency`/`Variant` widths, ByRef by default, Optional
 - `VbaProjectReader`: the `dir` stream, module kinds from `PROJECT`, the project's code page. Sources: .docm/.dotm (`word/vbaProject.bin`, located through the package relationships), .doc/.dot (the `Macros` storage), or a bare vbaProject.bin.
 - `VbaPackage`: writes a vbaProject.bin (source only; `_VBA_PROJECT` version 0xFFFF tells the host to compile) and turns a .docx into a .docm. It writes no protection records (CMG/DPB/GC), so it's used for test documents and hasn't been checked against Word yet.
 
-DraftHearth preserves the VBA project when saving a `.docm`. The editor can update supported existing
+Qanloom preserves the VBA project when saving a `.docm`. The editor can update supported existing
 module sources and save them with the document, preserving unedited modules and opaque project
 records. Unsupported project layouts and lossy code-page conversions are refused. No-op updates
 preserve project bytes. Editing signed projects requires explicit confirmation to remove the now
@@ -121,7 +121,7 @@ Control creation, events, drop-down/date members, headers and UserForms remain o
 ## Validation record
 
 The last recorded VBA runtime validation (2026-10-26) reports 37 tests passing against the real
-Linux headless DraftHearth engine. The FakeEngine suite reports 35 passing with two engine-only form
+Linux headless Qanloom engine. The FakeEngine suite reports 35 passing with two engine-only form
 tests skipped. Coverage includes transpilation, object-model behavior, macro execution and project
 preservation. A synthetic embedded macro updated a body text control and checkbox. The broader
 workspace guide records local chat/completion insertion and compilation checks, plus designer drag

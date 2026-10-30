@@ -1,4 +1,4 @@
-//! DraftHearth's writing assistant ([`wordcraft_brand::ASSISTANT_NAME`]): put a model's suggestion
+//! Qanloom's writing assistant ([`wordcraft_brand::ASSISTANT_NAME`]): put a model's suggestion
 //! into the document as tracked changes.
 //!
 //! The model runs through the local Enki service (driven by the assistant pane; users only

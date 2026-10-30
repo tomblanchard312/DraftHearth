@@ -1,8 +1,8 @@
-//! DraftHearth release links. The upstream installer assumes ArtCraft bundle/package identities.
+//! Qanloom release links. The upstream installer assumes ArtCraft bundle/package identities.
 
 use crate::WordApp;
 
-const RELEASES: &str = "https://github.com/tomblanchard312/DraftHearth/releases";
+const RELEASES: &str = "https://github.com/tomblanchard312/Qanloom/releases";
 
 #[derive(Default)]
 pub(crate) struct Runtime {
@@ -12,14 +12,14 @@ pub(crate) struct Runtime {
 
 impl WordApp {
     // shortcut: upstream's installer hardcodes ArtCraft bundle IDs; use our release page until
-    // craft-update supports DraftHearth's identity on every platform.
+    // craft-update supports Qanloom's identity on every platform.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn set_startup_update_check(&mut self, _on: bool) {}
 }
 
 pub(crate) fn check(app: &mut WordApp) {
     app.updates_rt.manual_window_open = true;
-    app.updates_rt.status_message = Some(tl!("Open DraftHearth releases to check for a newer version.").into());
+    app.updates_rt.status_message = Some(tl!("Open Qanloom releases to check for a newer version.").into());
 }
 
 pub(crate) fn tick(_app: &mut WordApp, _ctx: &egui::Context) {}
@@ -39,7 +39,7 @@ pub(crate) fn show(app: &mut WordApp, ctx: &egui::Context) {
             if let Some(msg) = &app.updates_rt.status_message {
                 ui.label(msg);
             }
-            ui.hyperlink_to(tl!("DraftHearth releases"), RELEASES);
+            ui.hyperlink_to(tl!("Qanloom releases"), RELEASES);
             ui.add_space(8.0);
             if ui.button(tl!("Close")).clicked() {
                 close = true;

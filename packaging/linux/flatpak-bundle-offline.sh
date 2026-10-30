@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Assemble the DraftHearth Flatpak bundle without flatpak-builder (no Flathub access here):
+# Assemble the Qanloom Flatpak bundle without flatpak-builder (no Flathub access here):
 # the same files and finish-args as packaging/linux/flatpak/io.github.tomblanchard312.Nisaba.bundle.yml.
 # usage: packaging/linux/flatpak-bundle-offline.sh <nisaba tarball from package.sh> <out.flatpak>
 # Needs flatpak and librsvg2-common (icon validation); the runtime is fetched from Flathub when the

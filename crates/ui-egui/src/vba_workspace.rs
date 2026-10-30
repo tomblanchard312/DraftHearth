@@ -103,7 +103,7 @@ pub(super) fn ask(app: &mut WordApp, params: &Value) -> Result<Value, String> {
     let mut messages = vec![wordcraft_sharedai::Message::new(
         "system",
         format!(
-            "Help the user write VBA for DraftHearth. Explain the task. If code is requested, return one complete insertable VBA snippet in a fenced vba block. Do not repeat existing procedures. Code is only proposed for review; do not claim execution. {}",
+            "Help the user write VBA for Qanloom. Explain the task. If code is requested, return one complete insertable VBA snippet in a fenced vba block. Do not repeat existing procedures. Code is only proposed for review; do not claim execution. {}",
             super::VBA_API
         ),
     )];

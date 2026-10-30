@@ -17,7 +17,7 @@ public sealed class Application
         Documents.Attach(openPath);
     }
 
-    public string Name => "Nisaba";
+    public string Name => "Qanloom";
     public string Version => "16.0"; // macros branch on this; Nisaba targets Word 16 (Microsoft 365) behaviour
     public Documents Documents { get; }
     public Selection Selection { get; }

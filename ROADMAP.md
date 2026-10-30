@@ -1,6 +1,9 @@
 # WordCraft roadmap
 
-> **Integration update: 2026-10-30** · Integrated 54 upstream commits through `5b5810fe`, preserving DraftHearth branding, Enki, Scribe, VBA and runtime packaging. ZIP and Tokio advisories are patched; see [integration evidence](docs/upstream-sync.md). Platform readiness estimates are unchanged.
+> **Qanloom rename: 2026-10-30** · DraftHearth is now Qanloom. Product UI, exports, package display names, wordmark, installer artwork and project links use Qanloom. Stable application/settings/upgrade identities and upstream attribution are retained. See [product identity](docs/product-name.md).
+
+
+> **Integration update: 2026-10-30** · Integrated 54 upstream commits through `5b5810fe`, preserving Qanloom branding, Enki, Scribe, VBA and runtime packaging. ZIP and Tokio advisories are patched; see [integration evidence](docs/upstream-sync.md). Platform readiness estimates are unchanged.
 
 
 > **Runtime integration: 2026-10-30** · Complete VBA runtime staging and scripting dependency guards now cover native package builders and local installs; see [runtime packaging](docs/scripting-runtimes.md). Platform readiness estimates are unchanged.
@@ -9,14 +12,14 @@
 
 > **Integration update: 2026-10-29** · Combined local product branding, Enki and file-picker changes with the synchronized upstream code. Existing settings and installation identities are retained. Readiness estimates are unchanged.
 
-> **Naming update: 2026-10-29** · Nisaba is now DraftHearth. Existing user data, installation identities and automation interfaces are retained; readiness estimates are unchanged.
+> **Naming update: 2026-10-29** · Nisaba is now Qanloom. Existing user data, installation identities and automation interfaces are retained; readiness estimates are unchanged.
 
 > **File picker update: 2026-10-28** · Desktop Open, Save and assistant model selection prefer Ninimma 0.1.4 or later when installed, with native/built-in fallback. The web model-file control remains desktop-only. Platform acceptance is unchanged.
 
 > **Image generation update: 2026-10-28** · Enki supplies verified CPU/GPU recommendations (Z-Image-Turbo/Qwen), with a persistent busy panel, sampling progress, elapsed time and cancellation. Existing model versions remain selectable. Native Linux and headless UI checks are recorded in the local verification report; cross-platform acceptance is unchanged.
 
 
-> **Upstream integration:** 2026-10-28 · Merged WordCraft `c4fafc21` (179 commits since the previous shared point) as `0a873432`. Modular UI, engine, document, format, layout, font and PDF changes are integrated; DraftHearth branding, Scribe, VBA and packaging work were carried forward. Workspace check and focused regressions passed; the full UI suite was interrupted and native MSI packaging was unavailable. See [integration evidence](docs/upstream-sync.md).
+> **Upstream integration:** 2026-10-28 · Merged WordCraft `c4fafc21` (179 commits since the previous shared point) as `0a873432`. Modular UI, engine, document, format, layout, font and PDF changes are integrated; Qanloom branding, Scribe, VBA and packaging work were carried forward. Workspace check and focused regressions passed; the full UI suite was interrupted and native MSI packaging was unavailable. See [integration evidence](docs/upstream-sync.md).
 
 > **Status update:** 2026-10-28 · Scribe and Developer chat and completion go through the Enki daemon, with verified model downloads; Developer has a VBA project explorer, source editor, document designer, contextual local chat and separate Phi-4 completion. Readiness estimates unchanged.
 
@@ -197,7 +200,7 @@ Ranked, to beta (detail and remaining milestones in [docs/roadmap.md](docs/roadm
 
 - 2026-10-25: Developer › Code Editor opens VBA source beside the document, with module editing/export, syntax colors, local Phi-4 completion and live paragraph selection/formatting. .bas/.docm source saving supported; GUI macro execution remains open.
 
-- 2026-10-25: Scribe runs GGUF models directly in DraftHearth on the CPU, with local model selection and streamed suggestions applied as tracked changes.
+- 2026-10-25: Scribe runs GGUF models directly in Qanloom on the CPU, with local model selection and streamed suggestions applied as tracked changes.
 
 - 2026-10-22: View › Window › New Window opens a second window on the document (desktop). The windows are titled `Name:1` and `Name:2` and each keeps its own caret, scroll position, zoom and view; edits and Undo are the document's and show in both. Closing one of them asks nothing; the last one asks about unsaved changes, and quitting asks once per document.
 - 2026-10-22: One native window per open document on the desktop. File › New and Open (from the ribbon, File, shortcuts, the file manager, the command line or the control channel) open the document in a window of its own, focused and placed a step below and right of the last one; opening a file replaces a blank document nobody has used in its own window, and a file that is already open brings its window to the front. Each window keeps its own ribbon tab, File page, dialogs, panes, scroll position and composition. View › Window › Switch Windows lists the windows and brings the chosen one forward. File › Close and a window's close button close that window, asking about unsaved changes first; the last window stays open with no document. Quitting asks about each document with unsaved changes in its own window, and Cancel keeps everything open. The control channel's input and screenshots go to the window focused last. The web app keeps one window.

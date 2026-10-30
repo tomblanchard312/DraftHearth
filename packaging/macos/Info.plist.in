@@ -7,11 +7,11 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleDisplayName</key>
-  <string>DraftHearth</string>
+  <string>Qanloom</string>
   <key>CFBundleName</key>
-  <string>DraftHearth</string>
+  <string>Qanloom</string>
   <key>CFBundleExecutable</key>
-  <string>DraftHearth</string>
+  <string>Qanloom</string>
   <key>CFBundleIdentifier</key>
   <string>io.github.tomblanchard312.Nisaba</string>
   <key>CFBundleInfoDictionaryVersion</key>
@@ -29,7 +29,7 @@
   <key>WordCraftBuildCommit</key>
   <string>@BUILD_SHA@</string>
   <key>CFBundleIconFile</key>
-  <string>DraftHearth</string>
+  <string>Qanloom</string>
   <key>LSApplicationCategoryType</key>
   <string>public.app-category.productivity</string>
   <!-- Must match MACOSX_DEPLOYMENT_TARGET in package.sh. Big Sur is the first release on
@@ -45,7 +45,7 @@
   <key>NSHumanReadableCopyright</key>
   <string>Copyright © the WordCraft authors and Tom Blanchard. MIT OR Apache-2.0.</string>
 
-  <!-- Documents DraftHearth opens (system type declarations). -->
+  <!-- Documents Qanloom opens (system type declarations). -->
   <key>CFBundleDocumentTypes</key>
   <array>
     <dict>

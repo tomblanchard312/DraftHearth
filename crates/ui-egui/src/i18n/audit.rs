@@ -230,7 +230,7 @@ fn fork_identities_are_data_but_interface_labels_still_need_translation() {
     assert!(exempt.allows(&app, wordcraft_brand::NAME));
     assert!(exempt.allows(&app, wordcraft_brand::COPYRIGHT));
     assert!(exempt.allows(&app, &app.session.author));
-    assert!(!exempt.allows(&app, "Open DraftHearth releases to check for a newer version."));
+    assert!(!exempt.allows(&app, "Open Qanloom releases to check for a newer version."));
     assert!(!exempt.allows(&app, "Document modules"));
 }
 

@@ -5,7 +5,7 @@ $script = Join-Path $PSScriptRoot 'package.ps1'
 $ast = [Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$errors)
 if ($errors.Count) { throw 'The packaging script does not parse.' }
 if ($ast.Extent.Text -match 'windows-user|UserMsi') {
-  throw 'DraftHearth ships one dual-scope MSI; there is no separate per-user installer to package.'
+  throw 'Qanloom ships one dual-scope MSI; there is no separate per-user installer to package.'
 }
 $commands = @($ast.FindAll({ param($node) $node -is [Management.Automation.Language.CommandAst] }, $true))
 $checks = @($commands | Where-Object {
@@ -26,4 +26,4 @@ $signs = @($commands | Where-Object {
 })
 if ($signs.Count -ne 1) { throw 'Expected the MSI to be signed exactly once.' }
 if ($checks[0].Extent.StartOffset -ge $signs[0].Extent.StartOffset) { throw 'The MSI must pass the policy check before it is signed.' }
-Write-Output 'PASS the DraftHearth MSI is policy-checked before it is signed.'
+Write-Output 'PASS the Qanloom MSI is policy-checked before it is signed.'

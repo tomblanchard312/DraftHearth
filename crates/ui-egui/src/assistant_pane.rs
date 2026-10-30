@@ -268,7 +268,7 @@ pub fn friendly(e: &wordcraft_sharedai::Error) -> String {
         E::Busy { .. } => f(tl!("{name} is busy. Try again in a moment.")),
         E::Timeout => f(tl!("{name} stopped responding. Try again.")),
         E::Unsupported => f(tl!("{name} isn't available on this system.")),
-        E::NotInstalled => f(tl!("{name} isn't installed with this copy of DraftHearth.")),
+        E::NotInstalled => f(tl!("{name} isn't installed with this copy of Qanloom.")),
         E::Incompatible => f(tl!("{name} needs an update.")),
         E::Invalid(_) => f(tl!("{name} couldn't take that request.")),
         E::Registry(_) => tl!("That model couldn't be added.").to_string(),
@@ -345,7 +345,7 @@ fn refresh_models(app: &mut WordApp) {
     }
 }
 
-/// Add the model file at `path`: copy it into DraftHearth's models folder and select it. Runs in the background; the pane reports when it's ready. Used by
+/// Add the model file at `path`: copy it into Qanloom's models folder and select it. Runs in the background; the pane reports when it's ready. Used by
 /// the pane's Choose Model File… and by `ui.assistant.addModel {path}`.
 pub fn add_model(app: &mut WordApp, path: &str) -> Result<Value, String> {
     if app.assistant.job.is_some() {

@@ -7,19 +7,19 @@ Scribe suggests rewrites and new text using a language model that runs on the us
 Scribe’s blue folded-page S and wedge-cut reed icon is embedded in the Review ribbon and the
 assistant pane. The original transparent artwork is recorded in [ATTRIBUTION.md](../ATTRIBUTION.md).
 
-Scribe asks the Enki daemon (`sharedai-daemon`) to run a GGUF chat model. DraftHearth does not link llama.cpp. Download Phi-4 mini or choose a local model file to get started. The assistant name remains `wordcraft_brand::ASSISTANT_NAME`.
+Scribe asks the Enki daemon (`sharedai-daemon`) to run a GGUF chat model. Qanloom does not link llama.cpp. Download Phi-4 mini or choose a local model file to get started. The assistant name remains `wordcraft_brand::ASSISTANT_NAME`.
 
 ## Using it
 
-1. Choose **Review › Scribe**. The first time, DraftHearth lists its local model files in the background ("Starting Scribe…").
-2. With no model yet, the pane says "Scribe needs a language model before it can write" and offers **Download Phi-4 mini** (about 2.5 GB, MIT). That is the default. DraftHearth checks the pinned SHA-256 and keeps the file in its models folder (`~/.local/share/nisaba/models`, private to the user), then selects it. **Choose Model File…** and the other catalog models under **Settings** are still available. If Phi-4 mini is already there, Scribe selects it ahead of other files unless a model was chosen already.
+1. Choose **Review › Scribe**. The first time, Qanloom lists its local model files in the background ("Starting Scribe…").
+2. With no model yet, the pane says "Scribe needs a language model before it can write" and offers **Download Phi-4 mini** (about 2.5 GB, MIT). That is the default. Qanloom checks the pinned SHA-256 and keeps the file in its models folder (`~/.local/share/nisaba/models`, private to the user), then selects it. **Choose Model File…** and the other catalog models under **Settings** are still available. If Phi-4 mini is already there, Scribe selects it ahead of other files unless a model was chosen already.
 3. Select some text and choose **Improve**, **Shorten**, **Fix grammar** or **More formal**, or type a request and choose **Send** (Ctrl+Enter, or Cmd+Enter on macOS). **Continue** writes a concise next paragraph after the selection, or uses text before the document caret when nothing is selected. On an empty body paragraph it can use the previous paragraph.
 4. The final answer streams into the pane; internal reasoning prefixes are withheld. **Stop** ends generation. Stopped, failed, empty or length-limited results cannot be applied; visible draft text can still be copied.
 5. **Replace** swaps the selection for the suggestion, **Insert** adds it after the selection, **Copy** puts it on the clipboard and **Discard** drops it.
 
 Replace targets the text selected when the request was made, even if only the selection moved. Any document edit or switch makes the suggestion stale and requires a fresh request. Scribe never falls back to replacing a different selection. Selections over 24,000 characters are refused rather than silently truncated. Requests are limited to 4,000 characters.
 
-Model selection, downloads and file import are grouped under **Settings**. Routine writing controls show the task rather than model names. An explicitly selected existing external model path is retained during discovery. Failures read plainly ("Scribe is busy. Try again in a moment.", "That's more text than Scribe can read at once. Select less."); the technical detail goes to DraftHearth's log.
+Model selection, downloads and file import are grouped under **Settings**. Routine writing controls show the task rather than model names. An explicitly selected existing external model path is retained during discovery. Failures read plainly ("Scribe is busy. Try again in a moment.", "That's more text than Scribe can read at once. Select less."); the technical detail goes to Qanloom's log.
 
 ## Downloading models
 
@@ -29,9 +29,9 @@ For a gated repository, accept its access terms on Hugging Face and enter a read
 
 ## Local inference
 
-Models stay in the app's data folder. Each request is sent to the per-user Enki daemon, which DraftHearth starts when it is not already listening (`sharedai-daemon` beside the app, in `SHAREDAI_DAEMON`, in `SHAREDAI_BIN_DIR`, or on `PATH`, with `sharedai-worker` beside the daemon). The daemon registers the selected file and streams the reply. Stop cancels that request. Loading can take the first few minutes of a request; each later chunk waits up to a minute.
+Models stay in the app's data folder. Each request is sent to the per-user Enki daemon, which Qanloom starts when it is not already listening (`sharedai-daemon` beside the app, in `SHAREDAI_DAEMON`, in `SHAREDAI_BIN_DIR`, or on `PATH`, with `sharedai-worker` beside the daemon). The daemon registers the selected file and streams the reply. Stop cancels that request. Loading can take the first few minutes of a request; each later chunk waits up to a minute.
 
-Old socket preferences remain readable for compatibility. The socket is the daemon's own endpoint, not a setting Scribe edits. Previously registered models outside DraftHearth's models folder must be chosen again. Browser builds keep the assistant disabled.
+Old socket preferences remain readable for compatibility. The socket is the daemon's own endpoint, not a setting Scribe edits. Previously registered models outside Qanloom's models folder must be chosen again. Browser builds keep the assistant disabled.
 
 ## For scripts and agents
 
@@ -73,7 +73,7 @@ The daemon keeps a loaded model between requests. Not yet: GPU acceleration, or 
 
 | Date | Change |
 |---|---|
-| 2026-10-28 | Scribe and Developer ask the Enki daemon for chat and completion. DraftHearth no longer links llama.cpp. |
+| 2026-10-28 | Scribe and Developer ask the Enki daemon for chat and completion. Qanloom no longer links llama.cpp. |
 | 2026-10-26 | Embedded the approved blue S/reed-tip icon, cached per UI context; inspected light/dark headless renders. |
 | 2026-10-26 | Guarded stale/partial suggestions and oversized selections; separated source data in prompts, added concise caret continuation, grouped model setup in Settings and verified real writing/review flows. |
 | 2026-10-25 | Replaced the daemon dependency with in-process CPU GGUF inference and a checksum-pinned Hugging Face download catalog. |

@@ -1,4 +1,4 @@
-# Flatpak manifest for DraftHearth, ready for a Flathub submission.
+# Flatpak manifest for Qanloom, ready for a Flathub submission.
 #
 # Flatpak builds run offline, so the crate sources must be vendored first. From the repo root:
 #
@@ -115,7 +115,7 @@ modules:
       - cargo --offline build --release --locked -p wordcraft -p wordcraft-cli
       - install -Dm755 target/release/wordcraft /app/bin/nisaba-bin
       # The release bundle copies Enki into /app/lib/enki-payload. This from-source build does not
-      # compile Enki; the launcher runs DraftHearth, and installs Enki when that payload is present.
+      # compile Enki; the launcher runs Qanloom, and installs Enki when that payload is present.
       - install -Dm755 packaging/linux/enki-flatpak-launch.sh /app/bin/nisaba
       - install -Dm755 target/release/wordcraft-cli /app/bin/nisaba-cli
       - install -Dm644 packaging/linux/io.github.tomblanchard312.Nisaba.desktop /app/share/applications/io.github.tomblanchard312.Nisaba.desktop

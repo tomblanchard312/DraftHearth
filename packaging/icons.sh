@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerate every app icon from assets/app-icon/nisaba.svg (original DraftHearth artwork). Output files
+# Regenerate every app icon from assets/app-icon/nisaba.svg (original Qanloom artwork). Output files
 # keep upstream's internal names (wordcraft.ico, wordcraft.icns, wordcraft-*.png) so build scripts
 # are unchanged; the themed icons use the app id.
 #

@@ -4,7 +4,7 @@ using WordCraft.Vba;
 using WordCraft.Vba.Testing;
 
 const string Usage = """
-    wcvba — run Word VBA macros against WordCraft
+    wcvba — run VBA macros against Qanloom (based on WordCraft)
 
       wcvba list      <file>...                     the VBA modules in a .docm/.dotm/.doc or vbaProject.bin
       wcvba transpile <file>...                     print the VB.NET translation
@@ -17,9 +17,9 @@ const string Usage = """
     own macros opens that document unless --doc names another one.
 
     engines:
-      --connect <port>                 a running window (nisaba --control <port>)
-      --cli <nisaba-cli> [--doc <in>] [--save <out>]
-                                       a headless session (nisaba-cli mcp; wordcraft-cli in a cargo build)
+      --connect <port>                 a running window (qanloom --control <port>)
+      --cli <qanloom-cli> [--doc <in>] [--save <out>]
+                                       a headless session (qanloom-cli mcp; wordcraft-cli in a cargo build)
       --fake "<para 1>|<para 2>"       the in-memory test engine; prints the result
 
     --unsafe    skip the security rules (trusted macros only)

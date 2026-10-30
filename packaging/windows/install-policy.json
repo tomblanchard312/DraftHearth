@@ -1,6 +1,6 @@
 {
   "id": "wordcraft",
-  "name": "Nisaba",
+  "name": "Qanloom",
   "upgradeCode": "CA023669-1903-46E1-89D2-8A889DBF885E",
   "sources": [
     "wordcraft.wxs"
@@ -25,14 +25,14 @@
     [
       "-1",
       "Software\\RegisteredApplications",
-      "Nisaba",
+      "DraftHearth",
       "Software\\Nisaba\\Capabilities"
     ],
     [
       "-1",
       "Software\\Nisaba\\Capabilities",
       "ApplicationName",
-      "DraftHearth"
+      "Qanloom"
     ],
     [
       "-1",
@@ -50,7 +50,7 @@
       "-1",
       "Software\\Classes\\Applications\\wordcraft.exe",
       "FriendlyAppName",
-      "Nisaba"
+      "Qanloom"
     ],
     [
       "-1",

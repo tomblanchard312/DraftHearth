@@ -55,9 +55,9 @@ try {
     if ($properties['UpgradeCode'].Trim('{}') -ne $policy.upgradeCode) { throw 'Launcher upgrade identity changed.' }
     $dirs = @{}
     foreach ($row in (Read-Rows $database 'SELECT `Directory`, `Directory_Parent`, `DefaultDir` FROM `Directory`' 3)) { $dirs[$row[0]] = @($row[1],$row[2]) }
-    if ($dirs['INSTALLFOLDER'][0] -ne 'LocalProgramsFolder' -or $dirs['INSTALLFOLDER'][1] -ne 'Nisaba' -or
+    if ($dirs['INSTALLFOLDER'][0] -ne 'LocalProgramsFolder' -or $dirs['INSTALLFOLDER'][1] -ne 'Qanloom' -or
         $dirs['LocalProgramsFolder'][0] -ne 'LocalAppDataFolder') {
-      throw 'New-install folder must be under the per-user DraftHearth folder.'
+      throw 'New-install folder must be under the per-user Qanloom folder.'
     }
     foreach ($explicit in @('', 'F:\Chosen exact launcher')) {
       Set-SessionProperty $session 'PREVIOUSINSTALLFOLDER' 'E:\Existing exact launcher'
@@ -76,7 +76,7 @@ try {
         throw 'Launcher registration or shortcut preference changed unexpectedly.'
       }
     }
-    Write-Output 'PASS DraftHearth: per-user scope, install folder, remembered/custom paths and existing registration. No installation performed.'
+    Write-Output 'PASS Qanloom: per-user scope, install folder, remembered/custom paths and existing registration. No installation performed.'
     return
   }
   if ($properties['ALLUSERS'] -ne '2' -or $properties['MSIINSTALLPERUSER'] -ne '1') {
@@ -87,7 +87,7 @@ try {
   foreach ($row in (Read-Rows $database 'SELECT `Directory`, `Directory_Parent`, `DefaultDir` FROM `Directory`' 3)) {
     $directories[$row[0]] = @($row[1], $row[2])
   }
-  if ($directories['INSTALLFOLDER'][1] -ne 'Nisaba') { throw 'Expected the app in the Nisaba folder.' }
+  if ($directories['INSTALLFOLDER'][1] -ne 'Qanloom') { throw 'Expected the app in the Qanloom folder.' }
   $programs = $directories['INSTALLFOLDER'][0]
   if ($programs -eq 'ProgramFiles6432Folder') { $programs = $directories[$programs][0] }
   if ($programs -notin 'ProgramFilesFolder', 'ProgramFiles64Folder') {

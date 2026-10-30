@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 
 /// The app's settings folder (preferences, logs, key files): macOS
-/// `~/Library/Application Support/Nisaba`, Windows `%APPDATA%\DraftHearth`, otherwise
+/// `~/Library/Application Support/Nisaba`, Windows `%APPDATA%\Nisaba`, otherwise
 /// `$XDG_CONFIG_HOME/nisaba` or `~/.config/nisaba` (names from `wordcraft_brand`).
 /// `WORDCRAFT_PROFILE_DIR` overrides the entire folder for isolated runs.
 pub fn settings_dir() -> Option<PathBuf> {

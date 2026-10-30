@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and package DraftHearth for Linux (<arch> is x86_64 or aarch64, or riscv64 when cross-compiling):
+# Build and package Qanloom for Linux (<arch> is x86_64 or aarch64, or riscv64 when cross-compiling):
 #
 #   $DIST/wordcraft-<version>-linux-<arch>.AppImage  any distro with glibc >= the build host's
 #   $DIST/wordcraft-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
@@ -42,10 +42,10 @@ case "$ARCH" in
   aarch64 | arm64) ARCH=aarch64; DEB_ARCH=arm64 ;;
   *) echo "unsupported architecture $ARCH" >&2; exit 2 ;;
 esac
-export WORDCRAFT_MAINTAINER="${WORDCRAFT_MAINTAINER:-Nisaba maintainers <wordcraft@storyteller.ai>}"
+export WORDCRAFT_MAINTAINER="${WORDCRAFT_MAINTAINER:-Qanloom maintainers <wordcraft@storyteller.ai>}"
 BASENAME="wordcraft-$VERSION-linux-$ARCH"
 
-echo "==> DraftHearth $VERSION for Linux $ARCH ($FORMATS)"
+echo "==> Qanloom $VERSION for Linux $ARCH ($FORMATS)"
 
 if [[ "$SKIP_BUILD" = 0 ]]; then
   if [[ -n "${CROSS_TARGET:-}" ]]; then
@@ -62,6 +62,8 @@ rm -rf "$WORK"
 # ---- stage an FHS tree (shared by every format) -------------------------------------------------
 install -Dm755 "$BIN/wordcraft" "$STAGE/usr/bin/nisaba"
 install -Dm755 "$BIN/wordcraft-cli" "$STAGE/usr/bin/nisaba-cli"
+ln -s nisaba "$STAGE/usr/bin/qanloom"
+ln -s nisaba-cli "$STAGE/usr/bin/qanloom-cli"
 RUNTIME_RID="linux-$(case "$ARCH" in x86_64) echo x64;; aarch64) echo arm64;; *) echo "$ARCH";; esac)"
 python3 "$ROOT/packaging/stage-runtimes.py" --rid "$RUNTIME_RID" --out "$STAGE/usr/lib/wordcraft/runtimes"
 
@@ -195,9 +197,9 @@ if has appimage; then
 fi
 
 if [[ -z "${CROSS_TARGET:-}" ]]; then
-  "$STAGE/usr/bin/wordcraft-cli" --version
+  "$STAGE/usr/bin/nisaba-cli" --version
 elif [[ -n "${EMULATOR:-}" ]]; then
-  "$EMULATOR" "$STAGE/usr/bin/wordcraft-cli" --version
+  "$EMULATOR" "$STAGE/usr/bin/nisaba-cli" --version
 fi
 echo "==> done"
 ls -lh "$DIST"

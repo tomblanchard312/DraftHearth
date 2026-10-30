@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build, sign and (optionally) notarize the macOS release artifacts:
 #
-#   $DIST/nisaba-<version>-macos-<arch>.dmg          DraftHearth.app on a drag-to-Applications DMG
+#   $DIST/nisaba-<version>-macos-<arch>.dmg          Qanloom.app on a drag-to-Applications DMG
 #   $DIST/nisaba-cli-<version>-macos-<arch>.zip      the headless CLI
 #
 # Usage: packaging/macos/package.sh [--arch universal|aarch64|x86_64] [--skip-build]
@@ -39,7 +39,7 @@ export MACOSX_DEPLOYMENT_TARGET=11.0
 IDENTITY="${MACOS_SIGN_IDENTITY:--}"
 SHORT_VERSION="${VERSION%%-*}"
 WORK="$CARGO_TARGET_DIR/macos-package"
-APP="$WORK/Nisaba.app"
+APP="$WORK/Qanloom.app"
 DMG="$DIST/wordcraft-$VERSION-macos-$ARCH.dmg"
 CLI_ZIP="$DIST/wordcraft-cli-$VERSION-macos-$ARCH.zip"
 
@@ -52,7 +52,7 @@ else
   warn "macOS: APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID incomplete; signed but not notarized"
 fi
 
-echo "==> DraftHearth $VERSION for macOS ($ARCH), identity: $IDENTITY, notarize: $NOTARIZE"
+echo "==> Qanloom $VERSION for macOS ($ARCH), identity: $IDENTITY, notarize: $NOTARIZE"
 
 # ---- build -------------------------------------------------------------------------------------
 if [[ "$SKIP_BUILD" = 0 ]]; then
@@ -112,15 +112,15 @@ notarize() {
   fi
 }
 
-# ---- DraftHearth.app ----------------------------------------------------------------------------
+# ---- Qanloom.app ----------------------------------------------------------------------------
 echo "==> assembling $APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 # Executable and icon carry the display name (CFBundleExecutable / CFBundleIconFile).
-cp "$WORK/bin/wordcraft" "$APP/Contents/MacOS/Nisaba"
+cp "$WORK/bin/wordcraft" "$APP/Contents/MacOS/Qanloom"
 RUNTIME_RID="osx-$(case "$ARCH" in x86_64) echo x64;; aarch64) echo arm64;; *) echo universal;; esac)"
 python3 "$ROOT/packaging/stage-runtimes.py" --rid "$RUNTIME_RID" --out "$APP/Contents/MacOS/runtimes"
 
-cp "$ROOT/assets/app-icon/wordcraft.icns" "$APP/Contents/Resources/Nisaba.icns"
+cp "$ROOT/assets/app-icon/wordcraft.icns" "$APP/Contents/Resources/Qanloom.icns"
 # Licences of the embedded craft-fonts fonts (only when built with CRAFT_FONTS_DIR).
 copy_docs "$APP/Contents/Resources"
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHORT_VERSION@/$SHORT_VERSION/g" \
@@ -138,13 +138,13 @@ xattr -cr "$APP"
 while IFS= read -r -d '' runtime_file; do
   if file "$runtime_file" | grep -q 'Mach-O'; then sign --options runtime --entitlements "$HERE/vba-entitlements.plist" "$runtime_file"; fi
 done < <(find "$APP/Contents/MacOS/runtimes" -type f -print0)
-sign --options runtime --entitlements "$HERE/entitlements.plist" "$APP/Contents/MacOS/Nisaba"
+sign --options runtime --entitlements "$HERE/entitlements.plist" "$APP/Contents/MacOS/Qanloom"
 sign --options runtime --entitlements "$HERE/entitlements.plist" "$APP"
 codesign --verify --strict --deep --verbose=2 "$APP"
 
 if [[ "$NOTARIZE" = 1 ]]; then
-  ditto -c -k --keepParent "$APP" "$WORK/Nisaba-notarize.zip"
-  notarize "$WORK/Nisaba-notarize.zip"
+  ditto -c -k --keepParent "$APP" "$WORK/Qanloom-notarize.zip"
+  notarize "$WORK/Qanloom-notarize.zip"
   stapler_retry staple "$APP"
   stapler_retry validate "$APP"
   spctl --assess --type execute -vvv "$APP"
@@ -154,7 +154,7 @@ fi
 echo "==> building $DMG"
 STAGE="$WORK/dmg"
 mkdir -p "$STAGE"
-ditto "$APP" "$STAGE/Nisaba.app"
+ditto "$APP" "$STAGE/Qanloom.app"
 ln -s /Applications "$STAGE/Applications"
 # Finder window layout: background, icon size and positions (packaging/macos/dmg/README.md).
 mkdir -p "$STAGE/.background"
@@ -184,7 +184,7 @@ hdiutil_retry() {
 # (Finder location -1,-1), so the signed app failed `codesign --verify --deep --strict` inside the
 # mounted DMG and after copying it out (#525). The volume name has no version: .DS_Store finds the
 # background through an alias that includes it.
-hdiutil_retry create -srcfolder "$STAGE" -volname "DraftHearth" -fs HFS+ -format UDZO \
+hdiutil_retry create -srcfolder "$STAGE" -volname "Qanloom" -fs HFS+ -format UDZO \
   -imagekey zlib-level=9 -ov "$DMG"
 sign "$DMG"
 codesign --verify --strict --verbose=2 "$DMG"
@@ -196,21 +196,21 @@ verify_dmg_app() {
   local dmg="$1" mount="$WORK/dmg-check" copy="$WORK/dmg-check-copy" rc=0
   mkdir -p "$mount" "$copy"
   hdiutil_retry attach -readonly -nobrowse -noautoopen -mountpoint "$mount" "$dmg" >/dev/null
-  echo "==> strict signature check of DraftHearth.app inside $(basename "$dmg")"
-  codesign --verify --deep --strict --verbose=2 "$mount/Nisaba.app" || rc=1
+  echo "==> strict signature check of Qanloom.app inside $(basename "$dmg")"
+  codesign --verify --deep --strict --verbose=2 "$mount/Qanloom.app" || rc=1
   if [[ "$rc" = 0 ]]; then
-    ditto "$mount/Nisaba.app" "$copy/Nisaba.app" || rc=1
+    ditto "$mount/Qanloom.app" "$copy/Qanloom.app" || rc=1
   fi
   if [[ "$rc" = 0 ]]; then
     echo "==> strict signature check of a ditto copy of it"
-    codesign --verify --deep --strict --verbose=2 "$copy/Nisaba.app" || rc=1
+    codesign --verify --deep --strict --verbose=2 "$copy/Qanloom.app" || rc=1
   fi
   if [[ "$rc" = 0 ]] && [[ "$NOTARIZE" = 1 ]]; then
-    spctl --assess --type execute -vvv "$copy/Nisaba.app" || rc=1
+    spctl --assess --type execute -vvv "$copy/Qanloom.app" || rc=1
   fi
   if [[ "$rc" != 0 ]]; then
-    echo "error: DraftHearth.app in $(basename "$dmg") fails strict verification; extended attributes:" >&2
-    xattr -lr "$mount/Nisaba.app" >&2 || true
+    echo "error: Qanloom.app in $(basename "$dmg") fails strict verification; extended attributes:" >&2
+    xattr -lr "$mount/Qanloom.app" >&2 || true
   fi
   hdiutil_retry detach "$mount" >/dev/null || hdiutil detach "$mount" -force >/dev/null || rc=1
   rm -rf "$copy"

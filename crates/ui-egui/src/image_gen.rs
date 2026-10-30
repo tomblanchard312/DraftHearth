@@ -808,7 +808,7 @@ mod image_progress_tests {
         assert!(h.query_by_label("Drawing, step 3 of 50.").is_some());
         assert!(h.query_by_label_contains("Elapsed: 1m").is_some());
         if let Some(dir) = std::env::var_os("ENKI_IMAGE_UI_SHOTS") {
-            h.render().unwrap().save(std::path::PathBuf::from(dir).join("wordcraft-DraftHearth.png")).unwrap();
+            h.render().unwrap().save(std::path::PathBuf::from(dir).join("wordcraft-Qanloom.png")).unwrap();
         }
         h.get_by_label("Cancel").click();
         h.run_steps(2);

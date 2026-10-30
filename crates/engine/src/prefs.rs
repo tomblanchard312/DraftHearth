@@ -56,7 +56,7 @@ pub struct Prefs {
     /// in Word). A damaged saved value reads as the defaults.
     #[serde(deserialize_with = "crate::cmd::tools::lenient_autocorrect")]
     pub autocorrect: crate::cmd::tools::AutoCorrectPrefs,
-    /// DraftHearth assistant model selection.
+    /// Qanloom assistant model selection.
     pub assistant_model: String,
     /// SharedAI local provider socket path, empty to use the platform default.
     pub assistant_socket: String,

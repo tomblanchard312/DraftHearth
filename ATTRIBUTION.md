@@ -63,6 +63,7 @@ Generated-in-code art is original and has no file to list: the UI icon set (`cra
 | craft-fonts (optional build input, not files in this repo): BIZ UDPGothic, BIZ UDMincho, Shippori Mincho, Noto Sans CJK SC, Noto Sans Arabic | see https://github.com/storytold/craft-fonts/blob/main/ATTRIBUTION.md | embedded only when built with `CRAFT_FONTS_DIR` (all official releases) | OFL-1.1 | Japanese and Chinese UI, Japanese document fallback |
 | craft-i18n (optional build input, not files in this repo): the interface translations | see https://github.com/storytold/craft-i18n/blob/main/ATTRIBUTION.md, which credits every translator of WordCraft's former in-repo catalogs (`crates/ui-egui/src/i18n/*.tsv`, migrated at `wordcraft@806a945`) | embedded only when built with `CRAFT_I18N_DIR`, at the commit in `craft-i18n.rev` (all official releases) | MIT OR Apache-2.0 | Interface languages other than English; clean-room translations from the English interface labels |
 | `assets/app-icon/nisaba-source.png` | Nisaba contributors (AI-assisted) | Original OpenAI image generation, 2026-10-28 | MIT OR Apache-2.0 | Nisaba branding |
+| `assets/app-icon/nisaba-logo.svg` | Tom Blanchard (AI-assisted) | Original Qanloom wordmark, 2026-10-30; existing document/stylus SVG and outlined Inter glyphs | MIT OR Apache-2.0; Inter font OFL-1.1 | Self-contained editable wordmark source |
 | `assets/app-icon/nisaba-logo.png` | Nisaba contributors (AI-assisted) | Original OpenAI image generation, 2026-10-28 | MIT OR Apache-2.0 | Nisaba branding |
 | `assets/app-icon/LICENSE-nisaba.txt` | Nisaba contributors (AI-assisted) | Original OpenAI image generation, 2026-10-28 | MIT OR Apache-2.0 | Nisaba branding |
 | `assets/app-icon/README.md` | Nisaba contributors | Original branding documentation | MIT OR Apache-2.0 | Describes the logo and platform icon formats |
@@ -70,3 +71,9 @@ Generated-in-code art is original and has no file to list: the UI icon set (`cra
 Brand rename (2026-10-29): the DraftHearth pen-and-document SVG and its platform renditions and wordmark are original AI-assisted artwork for Tom Blanchard, MIT OR Apache-2.0. The wordmark uses the existing OFL Inter font. Existing basenames and application IDs are retained for upgrade compatibility.
 
 Installer artwork update (2026-10-29): original DraftHearth blue-and-gold macOS background by Tom Blanchard, MIT OR Apache-2.0, with bundled OFL Inter text converted to paths. Legacy artwork attribution remains in Git history.
+
+Qanloom branding update (2026-10-30): retained the approved blue-and-gold document/stylus
+symbol; updated its accessible title, outlined Inter wordmark and macOS installer
+artwork. The new wordmark and derivatives are original contributor artwork for
+Tom Blanchard under MIT OR Apache-2.0. Existing filenames/app IDs are retained.
+Earlier artwork credits and upstream legal notices remain above and in Git history.

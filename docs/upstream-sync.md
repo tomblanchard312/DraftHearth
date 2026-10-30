@@ -6,10 +6,10 @@
 ## 2026-10-30 integration
 
 WordCraft `5b5810fe1f6f815acc3fda27619f61d9bc08b615` brings 54 upstream commits
-onto DraftHearth `ff0eea9b`. All upstream history is retained. Twelve conflicted files
+onto Qanloom `ff0eea9b`. All upstream history is retained. Twelve conflicted files
 were reconciled, keeping both projects' contributor entries and progress records.
 
-- Keep DraftHearth's name, app IDs, original icons, release links and hidden Discord default.
+- Keep Qanloom's name, app IDs, original icons, release links and hidden Discord default.
   Do not re-enable the upstream Windows self-updater or its WordCraft identity. The unused
   `craft-update` workspace dependency and its new upstream-only icon constant are omitted.
 - Adopt upstream's optional saved-author preference, including a deliberately blank name.
@@ -25,7 +25,7 @@ were reconciled, keeping both projects' contributor entries and progress records
 
 The fresh RustSec audit initially reports three ZIP extraction advisories
 (`RUSTSEC-2026-0367`, `RUSTSEC-2026-0368`, `RUSTSEC-2026-0369`) against `zip 3.0.0`.
-DraftHearth reads bounded entries into memory rather than calling `ZipArchive::extract`
+Qanloom reads bounded entries into memory rather than calling `ZipArchive::extract`
 or `ZipStreamReader::extract`; the affected filesystem extraction APIs have no callers
 in this workspace. Nevertheless, move the shared ZIP dependency to patched `9.1.3`
 and validate the document import/export regression suites. Update Tokio from `1.53.2`
@@ -66,8 +66,8 @@ following picture remains readable. Production size limits are unchanged.
 Native Windows/macOS/FreeBSD execution and installer acceptance were not rerun.
 Hosted checks are separate from the local evidence above.
 
-This integration brings WordCraft `438775ce` into DraftHearth, starting from `fa787519`.
-At the recorded upstream tip, DraftHearth was 296 commits behind and 12 ahead. The existing local
+This integration brings WordCraft `438775ce` into Qanloom, starting from `fa787519`.
+At the recorded upstream tip, Qanloom was 296 commits behind and 12 ahead. The existing local
 Scribe/VBA work was checkpointed as `8a3fc5a8` before merging. The checkpoint is retained on
 `codex/pre-upstream-20261026`; `codex/upstream-sync` holds the integration and local `main`
 is fast-forwarded to the same merge after validation.
@@ -79,12 +79,12 @@ is fast-forwarded to the same merge after validation.
 - Register Scribe and the VBA editor with the new task-pane host, including docking and closing.
   Keep inference jobs and unsaved source buffers app-wide so window switches and closes retain them.
   Suggestions continue to guard their captured document and revision before application.
-- Preserve DraftHearth's name, application IDs, settings, original icons, local inference and macro helper.
-  Keep upstream's new Windows per-user installer support and notice packaging, using DraftHearth's
+- Preserve Qanloom's name, application IDs, settings, original icons, local inference and macro helper.
+  Keep upstream's new Windows per-user installer support and notice packaging, using Qanloom's
   existing upgrade/component GUIDs and package naming.
-- Help's update menu links to DraftHearth releases. Upstream's automatic installer assumes ArtCraft
+- Help's update menu links to Qanloom releases. Upstream's automatic installer assumes ArtCraft
   bundle/package IDs, so automatic checking/installing is disabled until it supports this fork's IDs.
-- Preserve DraftHearth's README and compatibility notes alongside upstream's progress entries.
+- Preserve Qanloom's README and compatibility notes alongside upstream's progress entries.
 
 ## Validation
 
@@ -152,7 +152,7 @@ On 2026-10-28, merged WordCraft upstream through `c4fafc215490a0186ee750454b1ce7
 `0a8734327440c57ff234cedc15ffff0def31d960`. This update modularizes large parts of the UI, engine,
 document model, formats, layout, fonts and PDF code; adds rendering/layout fixes and stricter
 checks; and changes Windows installer scope support. VBA and Scribe were ported into the new UI
-structure, while DraftHearth identity and existing local work were retained.
+structure, while Qanloom identity and existing local work were retained.
 
 The branch is 19 commits ahead of `upstream/main` and 500 commits ahead / 5 behind `origin/main`
 at this recorded state. `origin/main` was not merged. Local verification after the refresh includes

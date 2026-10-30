@@ -55,6 +55,11 @@ modules:
         CRAFT_I18N_DIR: /run/build/wordcraft/craft-i18n
         CRAFT_I18N_REQUIRED: '1'
     build-commands:
+      - test -f packaged-runtimes/manifest.json
+      - >-
+        python3 packaging/stage-runtimes.py --verify-only --rid "linux-$(case $(uname -m) in x86_64) echo x64;; *) echo arm64;; esac)"
+        --out packaged-runtimes
+      - mkdir -p /app/lib/wordcraft && cp -R packaged-runtimes /app/lib/wordcraft/runtimes
       - cargo --offline build --release --locked -p wordcraft -p wordcraft-cli
       - install -Dm755 target/release/wordcraft /app/bin/nisaba-bin
       # The release bundle copies Enki into /app/lib/enki-payload. This from-source build does not
@@ -84,4 +89,7 @@ modules:
         url: https://github.com/storytold/craft-i18n
         commit: 9205108cfdced5177706264038848b68b2422d2b
         dest: craft-i18n
+      - type: dir
+        path: ../../../target/runtime-stage/runtimes
+        dest: packaged-runtimes
       - cargo-sources.json

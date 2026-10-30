@@ -55,6 +55,8 @@ overrides:
       - xdg-desktop-portal
 
 contents:
+  - src: ${STAGE}/usr/lib/wordcraft/
+    dst: /usr/lib/wordcraft/
   - src: ${STAGE}/usr/bin/nisaba
     dst: /usr/bin/nisaba
     file_info: { mode: 0755 }

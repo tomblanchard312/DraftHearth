@@ -92,8 +92,12 @@ $Stage = Join-Path $TargetDir "windows-package\$Arch"
 Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 Copy-Item (Join-Path $Bin 'wordcraft.exe'), (Join-Path $Bin 'wordcraft-cli.exe') $Stage
+Invoke-Native 'stage self-contained VBA runtime' {
+  python (Join-Path $Root 'packaging/stage-runtimes.py') --rid "win-$Arch" --out (Join-Path $Stage 'runtimes')
+}
 
-& (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage 'wordcraft.exe') (Join-Path $Stage 'wordcraft-cli.exe')
+
+& (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage 'wordcraft.exe') (Join-Path $Stage 'wordcraft-cli.exe') (Join-Path $Stage 'runtimes\vba\wcvba.exe')
 
 # Required notices ship in every MSI, independently of optional craft-fonts.
 $AppNotices = Join-Path $Stage 'app-notices'
@@ -169,6 +173,7 @@ $Portable = Join-Path $TargetDir "windows-package\wordcraft-$Version-windows-$Ar
 Remove-Item -Recurse -Force $Portable -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $Portable | Out-Null
 Copy-Item (Join-Path $Stage '*.exe') $Portable
+Copy-Item (Join-Path $Stage 'runtimes') $Portable -Recurse
 foreach ($f in 'README.md', 'LICENSE', 'LICENSE-MIT', 'LICENSE-APACHE', 'NOTICE', 'ATTRIBUTION.md') {
   $p = Join-Path $Root $f
   if (Test-Path $p) { Copy-Item $p $Portable }

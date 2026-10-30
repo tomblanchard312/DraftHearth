@@ -82,6 +82,9 @@ rm -rf "$WORK"
 mkdir -p "$STAGE/bin" "$STAGE/share/applications" "$STAGE/share/mime/packages" "$STAGE/share/metainfo" \
   "$STAGE/share/icons" "$STAGE/share/doc/wordcraft"
 install -m 755 "$BIN/wordcraft" "$BIN/wordcraft-cli" "$STAGE/bin/"
+RUNTIME_RID="freebsd-$(case "$ARCH" in x86_64|amd64) echo x64;; *) echo arm64;; esac)"
+python3 "$ROOT/packaging/stage-runtimes.py" --rid "$RUNTIME_RID" --out "$STAGE/lib/wordcraft/runtimes"
+
 strip "$STAGE/bin/wordcraft" "$STAGE/bin/wordcraft-cli" 2>/dev/null || true
 # The desktop entry, MIME type and metainfo are the freedesktop files the Linux packages use.
 install -m 644 "$LINUX/$APP_ID.desktop" "$STAGE/share/applications/$APP_ID.desktop"

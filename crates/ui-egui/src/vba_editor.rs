@@ -483,6 +483,13 @@ fn complete(app: &mut WordApp, index: usize) -> Result<Value, String> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+fn packaged_vba(exe: &std::path::Path) -> Option<PathBuf> {
+    let parent = exe.parent()?;
+    let helper = if cfg!(windows) { "wcvba.exe" } else { "wcvba" };
+    [parent.join("runtimes/vba").join(helper), parent.join("../lib/wordcraft/runtimes/vba").join(helper)].into_iter().find(|path| path.is_file())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn tool(verb: &str, file: &str, bytes: &[u8], cancel: &AtomicBool) -> Result<String, String> {
     use std::{
         io::Read,
@@ -502,6 +509,8 @@ fn tool(verb: &str, file: &str, bytes: &[u8], cancel: &AtomicBool) -> Result<Str
         let path = dir.join(file);
         std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
         let mut cmd = if let Some(helper) = std::env::var_os("NISABA_VBA") {
+            Command::new(helper)
+        } else if let Some(helper) = std::env::current_exe().ok().and_then(|exe| packaged_vba(&exe)) {
             Command::new(helper)
         } else {
             let project = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../vba/src/WordCraft.Vba");
@@ -887,6 +896,20 @@ fn run(app: &mut WordApp, id: &str, params: Value) {
 mod tests {
     use super::*;
     /// Needs the optional built VBA/.NET component.
+    #[test]
+    #[cfg(not(target_arch = "wasm32"))]
+    fn packaged_vba_is_found_without_a_source_checkout() {
+        let root = std::env::temp_dir().join(format!("drafthearth-runtime-layout-{}", std::process::id()));
+        let bin = root.join("bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        let name = if cfg!(windows) { "wcvba.exe" } else { "wcvba" };
+        let helper = root.join("lib/wordcraft/runtimes/vba").join(name);
+        std::fs::create_dir_all(helper.parent().unwrap()).unwrap();
+        std::fs::write(&helper, "fixture").unwrap();
+        assert_eq!(packaged_vba(&bin.join("wordcraft")).unwrap().canonicalize().unwrap(), helper.canonicalize().unwrap());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     #[ignore]
     fn checks_new_source_without_an_exported_name_attribute() {

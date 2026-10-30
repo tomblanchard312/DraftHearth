@@ -18,7 +18,7 @@ VBA (.bas/.cls) ──► Transpiler ──► VB.NET ──► Roslyn (Option S
 
 ## Quick start
 
-Requires a .NET 8 or newer SDK. There are no package dependencies: the VB compiler comes from the SDK (`RoslynDir` overrides it), so the projects target the .NET version bundled with that SDK and run on it. The desktop editor can use an installed `wcvba` helper, `NISABA_VBA`, or the SDK from this checkout for source checks and `.docm` module operations. Macro execution is currently exposed by the CLI, not by a GUI Run button.
+Building requires a .NET SDK; the portable Roslyn compiler is pinned to Microsoft.CodeAnalysis.VisualBasic 5.9.0 (`RoslynDir` can override it for development). Projects target the .NET version bundled with the build SDK. Native packages include a self-contained `wcvba` helper, runtime and notices, so users do not need a development SDK. The desktop editor prefers that bundled helper; `NISABA_VBA` remains an explicit override. Macro execution is currently exposed by the CLI, not by a GUI Run button.
 
 ```sh
 cd vba

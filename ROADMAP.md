@@ -1,5 +1,7 @@
 # WordCraft roadmap
 
+> **Runtime integration: 2026-10-30** · Complete VBA runtime staging and scripting dependency guards now cover native package builders and local installs; see [runtime packaging](docs/scripting-runtimes.md). Platform readiness estimates are unchanged.
+
 > **Scribe update: 2026-10-29** · Scribe rewrites preserve paragraph properties and unchanged character formatting when the paragraph structure is retained. New tracked paragraph breaks no longer inherit a deletion marker; Accept All keeps them. Replies that flatten multiple paragraphs are refused with an Insert/retry option. Regression checks cover Accept/Reject, Unicode and DOCX round-trip. Native Linux validation; other native platforms remain unverified. Readiness estimates unchanged.
 
 > **Integration update: 2026-10-29** · Combined local product branding, Enki and file-picker changes with the synchronized upstream code. Existing settings and installation identities are retained. Readiness estimates are unchanged.

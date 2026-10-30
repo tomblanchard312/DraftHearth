@@ -45,10 +45,15 @@
       <ComponentGroupRef Id="CraftFontLicences" />
       <?endif?>
       <ComponentGroupRef Id="WordcraftFiles" />
+      <ComponentGroupRef Id="WordcraftVbaFiles" />
     </Feature>
   </Package>
 
   <Fragment>
+    <DirectoryRef Id="INSTALLFOLDER"><Directory Id="WordcraftRuntimes" Name="runtimes"><Directory Id="WordcraftVbaRuntime" Name="vba" /></Directory></DirectoryRef>
+    <ComponentGroup Id="WordcraftVbaFiles" Directory="WordcraftVbaRuntime">
+      <Files Include="$(var.BinDir)\runtimes\vba\**" />
+    </ComponentGroup>
     <ComponentGroup Id="AppNotices" Directory="INSTALLFOLDER">
       <Files Include="$(var.AppNoticesDir)\**" />
     </ComponentGroup>

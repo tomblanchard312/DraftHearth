@@ -1,5 +1,7 @@
 # UI parity with Microsoft Word
 
+> **Runtime integration: 2026-10-30** · Native packages and local installs must retain the complete VBA runtime/compiler and its notices. Portable script packages are checked for required dependencies; Linux system packages declare their scripting dependencies. Native Linux smoke checks are separate from foreign-platform packaging checks. See [runtime packaging](scripting-runtimes.md).
+
 > **Scribe update: 2026-10-29** · Scribe rewrites preserve paragraph properties and unchanged character formatting when the paragraph structure is retained. New tracked paragraph breaks no longer inherit a deletion marker; Accept All keeps them. Regression checks cover Accept/Reject, Unicode and DOCX round-trip. Native Linux validation; other native platforms remain unverified. Readiness estimates unchanged.
 
 > **Scribe identity:** 2026-10-26 · Approved blue S/reed-tip artwork is embedded in the ribbon and assistant pane; light/dark headless renders checked.

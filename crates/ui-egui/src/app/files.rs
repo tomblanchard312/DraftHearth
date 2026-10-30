@@ -13,6 +13,9 @@ impl WordApp {
         if document != self.session.document_id() {
             return Err("the document the prompt asked about has been replaced".into());
         }
+        if then == "ui.vba.finishClose" {
+            return crate::vba_editor::answer_close(self, choice);
+        }
         // Don't Save is the user's say-so to discard the changes, which Close otherwise refuses.
         let mut params = params;
         if choice == SaveChoice::DontSave && then == "file.close" {
@@ -184,8 +187,7 @@ impl WordApp {
     /// close; with unsaved changes it asks first and returns false.
     pub fn close_requested(&mut self) -> bool {
         if self.vba.unsaved() {
-            self.session.view.vba_editor = true;
-            self.status(tl!("Save or revert unsaved VBA modules before closing."));
+            crate::vba_editor::prompt_close(self, "Save the module source files before closing, or choose Don’t Save to discard their edits.");
             return false;
         }
         if self.printing.busy() {

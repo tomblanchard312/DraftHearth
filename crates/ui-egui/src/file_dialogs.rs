@@ -99,6 +99,10 @@ pub(crate) enum AfterPick {
     VbaSave {
         module: usize,
     },
+    VbaSaveBeforeClose {
+        module: usize,
+        document: u64,
+    },
 }
 
 /// What to do once Save As has written the document.
@@ -315,6 +319,20 @@ impl WordApp {
                     return Err("The document changed while choosing the save path.".into());
                 }
                 self.run("ui.vba.saveDocument", json!({"path":path}))
+            }
+            AfterPick::VbaSaveBeforeClose { module, document } => {
+                if document != self.session.document_id() {
+                    return Err("The document changed while choosing the save path.".into());
+                }
+                let Some(path) = picked else {
+                    crate::vba_editor::prompt_close(self, "Saving was cancelled. Your module edits are still open.");
+                    return Ok(json!({"cancelled":true}));
+                };
+                if let Err(error) = self.run("ui.vba.save", json!({"path":path,"module":module})) {
+                    crate::vba_editor::prompt_close(self, &error);
+                    return Err(error);
+                }
+                crate::vba_editor::answer_close(self, crate::state::SaveChoice::Save)
             }
             AfterPick::VbaSave { module } => {
                 let Some(path) = picked else { return Ok(json!({"cancelled": true})) };

@@ -17,7 +17,7 @@ mod inference;
 mod service;
 pub use download::{DownloadReport, default_image_model_present, download_default_image_model, download_image_model, image_model_present};
 pub use inference::{Generation, ImageRequest, InferenceTimeouts, Picture, Summary};
-pub use service::Service;
+pub use service::{Service, bundled_daemon};
 pub use sharedai_protocol::{
     CPU_IMAGE_MODEL_ID, ChatMessage, DEFAULT_IMAGE_CFG, DEFAULT_IMAGE_MODEL_ID, DEFAULT_IMAGE_SIDE, DEFAULT_IMAGE_STEPS, GPU_IMAGE_MODEL_ID,
     GenerateParams, ImageProfile, ImageTask, InferenceErrorKind, StopReason, image_profile, limits,

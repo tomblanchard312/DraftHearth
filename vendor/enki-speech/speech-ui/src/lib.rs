@@ -45,6 +45,16 @@ pub struct SpeechTools {
 }
 impl SpeechTools {
     pub fn new(app: &'static str) -> Self {
+        if std::env::current_exe().ok().and_then(|exe| sharedai_client::bundled_daemon(&exe, app)).is_some() {
+            let _ = std::thread::Builder::new().name("enki-runtime".into()).spawn(move || {
+                if let (Some(endpoint), Ok(executable), Ok(runtime)) =
+                    (sharedai_client::service_endpoint(), std::env::current_exe(), tokio::runtime::Builder::new_current_thread().enable_all().build())
+                {
+                    let client = Client::new(endpoint, app);
+                    let _ = runtime.block_on(client.ensure_bundled(&executable, app, &Cancellation::new()));
+                }
+            });
+        }
         Self {
             app,
             open: false,
@@ -263,6 +273,9 @@ fn transcribe(app: &str, input: Input, language: Option<String>, cancel: &Cancel
     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| e.to_string())?;
     runtime.block_on(async{
         let client=Client::new(endpoint,app);
+        if let Ok(executable) = std::env::current_exe() {
+            client.ensure_bundled(&executable, app, cancel).await.map_err(|e| format!("Could not start bundled Enki: {e}"))?;
+        }
         let capability=client.speech_capabilities(cancel).await.map_err(|e|format!("Local speech is unavailable: {e}"))?;
         if !capability.available{return Err("Install whisper.cpp and configure Enki’s ENKI_WHISPER_CLI path before using speech.".into());}
         let Response::Models{ids}=client.request(Request::ListModels,cancel).await.map_err(|e|e.to_string())? else{return Err("Local model discovery failed.".into());};

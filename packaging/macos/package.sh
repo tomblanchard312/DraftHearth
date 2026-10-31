@@ -123,6 +123,7 @@ python3 "$ROOT/packaging/stage-runtimes.py" --rid "$RUNTIME_RID" --out "$APP/Con
 cp "$ROOT/assets/app-icon/wordcraft.icns" "$APP/Contents/Resources/Qanloom.icns"
 # Licences of the embedded craft-fonts fonts (only when built with CRAFT_FONTS_DIR).
 copy_docs "$APP/Contents/Resources"
+python3 "$ROOT/packaging/stage-enki.py" --target "$ARCH-apple-darwin" --out "$APP/Contents/MacOS/enki"
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHORT_VERSION@/$SHORT_VERSION/g" \
   -e "s/@BUILD_SHA@/${WORDCRAFT_BUILD_SHA:-unknown}/g" \
   "$HERE/Info.plist.in" >"$APP/Contents/Info.plist"
@@ -138,6 +139,10 @@ xattr -cr "$APP"
 while IFS= read -r -d '' runtime_file; do
   if file "$runtime_file" | grep -q 'Mach-O'; then sign --options runtime --entitlements "$HERE/vba-entitlements.plist" "$runtime_file"; fi
 done < <(find "$APP/Contents/MacOS/runtimes" -type f -print0)
+for runtime in "$APP/Contents/MacOS/enki/"*; do
+  case "$runtime" in *.txt|*.json) continue ;; esac
+  sign --options runtime "$runtime"
+done
 sign --options runtime --entitlements "$HERE/entitlements.plist" "$APP/Contents/MacOS/Qanloom"
 sign --options runtime --entitlements "$HERE/entitlements.plist" "$APP"
 codesign --verify --strict --deep --verbose=2 "$APP"

@@ -97,6 +97,7 @@ sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$WORDCRAFT_BUILD_DATE/g" \
   "$LINUX/$APP_ID.metainfo.xml.in" >"$STAGE/share/metainfo/$APP_ID.metainfo.xml"
 cp -R "$ROOT/assets/app-icon/hicolor" "$STAGE/share/icons/"
 copy_docs "$STAGE/share/doc/wordcraft"
+python3 "$ROOT/packaging/stage-enki.py" --target "${CARGO_BUILD_TARGET:-$(rustc -vV | sed -n 's/^host: //p')}" --out "$STAGE/lib/qanloom/enki"
 
 # ---- .tar.gz -------------------------------------------------------------------------------------
 mkdir -p "$DIST"

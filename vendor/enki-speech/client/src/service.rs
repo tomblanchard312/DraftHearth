@@ -120,6 +120,7 @@ pub fn bundled_daemon(executable: &Path, app: &str) -> Option<PathBuf> {
 
 impl Client {
     /// Reuse a healthy service, otherwise launch only the app's bundled runtime.
+    // shortcut: the shared daemon uses its launching app's files; require a shared install before supporting live uninstall/update.
     pub async fn ensure_bundled(&self, executable: &Path, app: &str, cancellation: &Cancellation) -> Result<(), Error> {
         match self.request(Request::Health, cancellation).await {
             Ok(Response::Health { status }) if status == "ok" => return Ok(()),

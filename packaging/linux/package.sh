@@ -9,10 +9,7 @@
 #
 # Usage: packaging/linux/package.sh [--skip-build] [--formats "appimage deb rpm tar"]
 #
-# The package also carries Enki (sharedai-daemon, sharedai-worker, sharedai-sd). Installing it
-# puts that Enki in /usr/lib/enki when it is missing or newer than the one already there.
-# Set ENKI_ROOT if the Enki checkout is not the sibling ../Enki directory. ENKI_BIN_DIR
-# skips rebuilding Enki and uses that directory of binaries instead.
+# Enki is staged from the pinned binary-only release; no private checkout is needed.
 #
 # Needs: cargo; nfpm for deb/rpm (https://nfpm.goreleaser.com); appimagetool for the AppImage
 # (downloaded into $CARGO_TARGET_DIR if missing). Build on an old distro (CI: Ubuntu 22.04,
@@ -77,16 +74,8 @@ mkdir -p "$STAGE/usr/share/icons"
 cp -R "$ROOT/assets/app-icon/hicolor" "$STAGE/usr/share/icons/"
 mkdir -p "$STAGE/usr/share/doc/nisaba"
 copy_docs "$STAGE/usr/share/doc/nisaba"
-if [[ -z "${ENKI_ROOT:-}" && -f "$ROOT/../Enki/packaging/stage-enki.sh" ]]; then
-  ENKI_ROOT=$(CDPATH='' cd -- "$ROOT/../Enki" && pwd)
-fi
-if [[ ! -f "${ENKI_ROOT:-}/packaging/stage-enki.sh" ]]; then
-  echo "error: Enki checkout not found. Set ENKI_ROOT so the package can install Enki." >&2
-  exit 1
-fi
-# shellcheck disable=SC1091
-. "$ENKI_ROOT/packaging/stage-enki.sh"
-stage_shared_enki nisaba "$HERE/enki-flatpak-launch.sh"
+
+python3 "$ROOT/packaging/stage-enki.py" --target "${CROSS_TARGET:-$ARCH-unknown-linux-gnu}" --out "$STAGE/usr/lib/qanloom/enki"
 
 if command -v desktop-file-validate >/dev/null; then
   desktop-file-validate "$STAGE/usr/share/applications/$APP_ID.desktop"
@@ -151,7 +140,12 @@ if has appimage; then
   }
   APPDIR="$WORK/Nisaba.AppDir"
   cp -R "$STAGE" "$APPDIR"
-  write_enki_apprun "$APPDIR" nisaba nisaba
+  cat >"$APPDIR/AppRun" <<'EOF'
+#!/bin/sh
+here=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
+exec "$here/usr/bin/nisaba" "$@"
+EOF
+  chmod 755 "$APPDIR/AppRun"
   cp "$HERE/$APP_ID.desktop" "$APPDIR/$APP_ID.desktop"
   cp "$ROOT/assets/app-icon/hicolor/256x256/apps/$APP_ID.png" "$APPDIR/$APP_ID.png"
   ln -s "$APP_ID.png" "$APPDIR/.DirIcon"

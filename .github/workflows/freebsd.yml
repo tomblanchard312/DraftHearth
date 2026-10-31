@@ -44,7 +44,7 @@ jobs:
           usesh: true
           copyback: false
           prepare: |
-            pkg install -y pkgconf alsa-lib cmake curl llvm libX11 libxkbcommon libXcursor libXi libXrender mesa-libs crosextrafonts-carlito noto-sans-hebrew noto-sans-arabic
+            pkg install -y pkgconf alsa-lib cmake curl llvm libX11 libxkbcommon libXcursor libXi libXrender mesa-libs crosextrafonts-carlito noto-sans-hebrew noto-sans-arabic noto-sans-thai
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
           run: |
             . "$HOME/.cargo/env"

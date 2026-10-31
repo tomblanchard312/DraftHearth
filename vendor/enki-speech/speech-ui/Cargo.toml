@@ -2,7 +2,7 @@
 name = "enki-speech-ui"
 version = "0.2.0"
 edition = "2024"
-license = "UNLICENSED"
+license = "MIT"
 description = "Optional shared desktop speech controls for Enki consumers"
 
 [dependencies]

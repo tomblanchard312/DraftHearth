@@ -2,7 +2,7 @@
 name = "sharedai-client"
 version = "0.1.0"
 edition = "2024"
-license = "UNLICENSED"
+license = "MIT"
 [dependencies]
 sharedai-protocol = { path = "../enki-protocol" }
 serde_json = "1"

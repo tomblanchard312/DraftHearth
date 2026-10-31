@@ -40,6 +40,7 @@
     <StandardDirectory Id="ProgramMenuFolder" />
 
     <Feature Id="Main" Title="Qanloom" Level="1">
+      <ComponentGroupRef Id="EnkiRuntimeFiles" />
       <ComponentGroupRef Id="AppNotices" />
       <?if $(var.HasCraftFontLicences) = 1 ?>
       <ComponentGroupRef Id="CraftFontLicences" />
@@ -50,6 +51,11 @@
   </Package>
 
   <Fragment>
+    <DirectoryRef Id="INSTALLFOLDER"><Directory Id="EnkiRuntimeDirectory" Name="enki" /></DirectoryRef>
+    <ComponentGroup Id="EnkiRuntimeFiles" Directory="EnkiRuntimeDirectory">
+      <Files Include="$(var.BinDir)\enki\**" />
+    </ComponentGroup>
+
     <DirectoryRef Id="INSTALLFOLDER"><Directory Id="WordcraftRuntimes" Name="runtimes"><Directory Id="WordcraftVbaRuntime" Name="vba" /></Directory></DirectoryRef>
     <ComponentGroup Id="WordcraftVbaFiles" Directory="WordcraftVbaRuntime">
       <Files Include="$(var.BinDir)\runtimes\vba\**" />

@@ -31,6 +31,8 @@ overrides:
       - libc6 (>= 2.35)
       - libgcc-s1
       - libasound2 | libasound2t64
+      - libgomp1
+      - libstdc++6
       - libxkbcommon0
       - libvulkan1 | libegl1
     recommends:
@@ -45,6 +47,8 @@ overrides:
   rpm:
     depends:
       - libasound.so.2()(64bit)
+      - libgomp
+      - libstdc++
       - libxkbcommon
       - (vulkan-loader or libglvnd-egl)
     recommends:
@@ -57,6 +61,9 @@ overrides:
       - xdg-desktop-portal
 
 contents:
+  - src: ${STAGE}/usr/lib/qanloom/enki/
+    dst: /usr/lib/qanloom/enki/
+    type: tree
   - src: ${STAGE}/usr/lib/wordcraft/
     dst: /usr/lib/wordcraft/
   - src: ${STAGE}/usr/bin/nisaba
@@ -65,12 +72,6 @@ contents:
   - src: ${STAGE}/usr/bin/nisaba-cli
     dst: /usr/bin/nisaba-cli
     file_info: { mode: 0755 }
-  - src: ${STAGE}/usr/bin/nisaba-install-enki
-    dst: /usr/bin/nisaba-install-enki
-    file_info: { mode: 0755 }
-  - src: ${STAGE}/usr/lib/nisaba/
-    dst: /usr/lib/nisaba/
-    type: tree
   - src: ${STAGE}/usr/share/
     dst: /usr/share/
     type: tree

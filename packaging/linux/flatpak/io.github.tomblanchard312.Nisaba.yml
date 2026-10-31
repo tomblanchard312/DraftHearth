@@ -46,10 +46,8 @@ finish-args:
   - --filesystem=xdg-data/nisaba
   # Shared Enki on the host. The launcher installs or updates it and uses its socket.
   # A newer Enki already installed is left as it is.
-  - --filesystem=xdg-data/enki:create
   - --filesystem=xdg-data/SharedAI:create
   - --filesystem=xdg-run/sharedai:create
-  - --filesystem=/usr/lib/enki:ro
   - --talk-name=org.freedesktop.Flatpak
   # Home/host filesystem access remains restricted.
 
@@ -114,10 +112,9 @@ modules:
         --out packaged-runtimes
       - mkdir -p /app/lib/wordcraft && cp -R packaged-runtimes /app/lib/wordcraft/runtimes
       - cargo --offline build --release --locked -p wordcraft -p wordcraft-cli
-      - install -Dm755 target/release/wordcraft /app/bin/nisaba-bin
+      - install -Dm755 target/release/wordcraft /app/bin/nisaba
       # The release bundle copies Enki into /app/lib/enki-payload. This from-source build does not
       # compile Enki; the launcher runs Qanloom, and installs Enki when that payload is present.
-      - install -Dm755 packaging/linux/enki-flatpak-launch.sh /app/bin/nisaba
       - install -Dm755 target/release/wordcraft-cli /app/bin/nisaba-cli
       - install -Dm644 packaging/linux/io.github.tomblanchard312.Nisaba.desktop /app/share/applications/io.github.tomblanchard312.Nisaba.desktop
       - install -Dm644 packaging/linux/io.github.tomblanchard312.Nisaba.mime.xml /app/share/mime/packages/io.github.tomblanchard312.Nisaba.xml
@@ -128,7 +125,13 @@ modules:
         install -d /app/share/metainfo;
         sed -e "s/@VERSION@/$version/" -e "s/@DATE@/$(date -u +%Y-%m-%d)/"
         packaging/linux/io.github.tomblanchard312.Nisaba.metainfo.xml.in > /app/share/metainfo/io.github.tomblanchard312.Nisaba.metainfo.xml
+      - ENKI_RUNTIME_ARCHIVE=enki-runtime.zip python3 packaging/stage-enki.py --target $(uname -m)-unknown-linux-gnu --out /app/lib/qanloom/enki
     sources:
+      - type: file
+        url: https://github.com/tomblanchard312/Enki-runtime/releases/download/v0.2.0-preview.2/enki-runtime-0.2.0-preview.2-x86_64-unknown-linux-gnu.zip
+        sha256: 142c3e45a8c808215a2067a6d26fa6ba963321aa5fca3cdfc1f76378ef434f29
+        dest-filename: enki-runtime.zip
+        only-arches: [x86_64]
       - type: dir
         path: ../../..
         skip:

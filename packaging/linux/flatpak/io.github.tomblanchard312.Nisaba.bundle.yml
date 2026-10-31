@@ -45,10 +45,8 @@ finish-args:
   - --filesystem=xdg-data/nisaba
   # Shared Enki on the host. The launcher installs or updates it and uses its socket.
   # A newer Enki already installed is left as it is.
-  - --filesystem=xdg-data/enki:create
   - --filesystem=xdg-data/SharedAI:create
   - --filesystem=xdg-run/sharedai:create
-  - --filesystem=/usr/lib/enki:ro
   - --talk-name=org.freedesktop.Flatpak
   # Home/host filesystem access remains restricted.
 
@@ -102,9 +100,7 @@ modules:
     build-commands:
       - test -f lib/wordcraft/runtimes/manifest.json
       - mkdir -p /app/lib && cp -R lib/wordcraft /app/lib/
-      - install -Dm755 bin/nisaba /app/bin/nisaba-bin
-      - install -Dm755 bin/nisaba-launch /app/bin/nisaba
-      - mkdir -p /app/lib/enki-payload && cp -a lib/nisaba/enki-payload/. /app/lib/enki-payload/
+      - install -Dm755 bin/nisaba /app/bin/nisaba
       - install -Dm755 bin/nisaba-cli /app/bin/nisaba-cli
       - install -Dm644 share/applications/io.github.tomblanchard312.Nisaba.desktop /app/share/applications/io.github.tomblanchard312.Nisaba.desktop
       - install -Dm644 share/mime/packages/io.github.tomblanchard312.Nisaba.xml /app/share/mime/packages/io.github.tomblanchard312.Nisaba.xml
@@ -112,6 +108,7 @@ modules:
       - install -Dm644 share/metainfo/io.github.tomblanchard312.Nisaba.metainfo.xml /app/share/metainfo/io.github.tomblanchard312.Nisaba.metainfo.xml
       # Docs include the licences of the embedded craft-fonts (OFL-*.txt).
       - mkdir -p /app/share/icons /app/share/doc && cp -R share/icons/hicolor /app/share/icons/ && cp -R share/doc/wordcraft /app/share/doc/
+      - mkdir -p /app/lib/qanloom && cp -R lib/qanloom/enki /app/lib/qanloom/enki
     sources:
       - type: dir
         path: stage

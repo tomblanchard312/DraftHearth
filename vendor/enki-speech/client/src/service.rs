@@ -9,20 +9,26 @@ pub struct Service {
 }
 impl Service {
     pub async fn start(executable: &Path, endpoint: &Path, cancellation: &Cancellation) -> Result<Self, Error> {
-        Self::launch(executable, endpoint, None, cancellation).await
+        Self::launch(executable, endpoint, None, cancellation, true).await
     }
 
     /// Use an explicitly selected database in an existing private data directory.
     pub async fn start_with_registry(executable: &Path, endpoint: &Path, registry: &Path, cancellation: &Cancellation) -> Result<Self, Error> {
-        Self::launch(executable, endpoint, Some(registry), cancellation).await
+        Self::launch(executable, endpoint, Some(registry), cancellation, true).await
     }
 
-    async fn launch(executable: &Path, endpoint: &Path, registry: Option<&Path>, cancellation: &Cancellation) -> Result<Self, Error> {
+    async fn launch(
+        executable: &Path,
+        endpoint: &Path,
+        registry: Option<&Path>,
+        cancellation: &Cancellation,
+        kill_on_drop: bool,
+    ) -> Result<Self, Error> {
         if *cancellation.0.borrow() {
             return Err(Error::Cancelled);
         }
         let mut command = Command::new(executable);
-        command.kill_on_drop(true).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+        command.kill_on_drop(kill_on_drop).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
         #[cfg(unix)]
         command.env("SHAREDAI_SOCKET", endpoint);
         #[cfg(windows)]
@@ -30,6 +36,12 @@ impl Service {
             command.env("SHAREDAI_PIPE", endpoint);
             // CREATE_NO_WINDOW: a library caller does not need a console or elevation prompt.
             command.creation_flags(0x08000000);
+        }
+        if let Some(directory) = executable.parent() {
+            let whisper = directory.join(if cfg!(windows) { "whisper-cli.exe" } else { "whisper-cli" });
+            if whisper.is_file() && std::env::var_os("ENKI_WHISPER_CLI").is_none() {
+                command.env("ENKI_WHISPER_CLI", whisper);
+            }
         }
         if let Some(registry) = registry {
             command.env("SHAREDAI_REGISTRY", registry);
@@ -93,5 +105,62 @@ impl Service {
             let _ = self.child.wait().await;
         }
         result
+    }
+}
+
+/// Locate only app-relative runtime directories; never search the working directory or PATH.
+pub fn bundled_daemon(executable: &Path, app: &str) -> Option<PathBuf> {
+    if app.is_empty() || !app.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-') {
+        return None;
+    }
+    let parent = executable.parent()?;
+    let name = if cfg!(windows) { "sharedai-daemon.exe" } else { "sharedai-daemon" };
+    [parent.join("enki").join(name), parent.join("../lib").join(app).join("enki").join(name)].into_iter().find(|path| path.is_file())
+}
+
+impl Client {
+    /// Reuse a healthy service, otherwise launch only the app's bundled runtime.
+    // shortcut: the shared daemon uses its launching app's files; require a shared install before supporting live uninstall/update.
+    pub async fn ensure_bundled(&self, executable: &Path, app: &str, cancellation: &Cancellation) -> Result<(), Error> {
+        match self.request(Request::Health, cancellation).await {
+            Ok(Response::Health { status }) if status == "ok" => return Ok(()),
+            Err(Error::Io(error)) if matches!(error.kind(), io::ErrorKind::NotFound | io::ErrorKind::ConnectionRefused) => {}
+            Err(error) => return Err(error),
+            _ => return Err(Error::UnexpectedResponse),
+        }
+        let daemon =
+            bundled_daemon(executable, app).ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, "Bundled Enki runtime is missing")))?;
+        match Service::launch(&daemon, &self.endpoint, None, cancellation, false).await {
+            Ok(service) => {
+                drop(service);
+                Ok(())
+            }
+            Err(error) => {
+                // Another app may have won the ordinary-user service startup race.
+                match self.request(Request::Health, cancellation).await {
+                    Ok(Response::Health { status }) if status == "ok" => Ok(()),
+                    _ => Err(error),
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod bundle_tests {
+    use super::*;
+    #[test]
+    fn bundles_are_app_relative_and_reject_path_components() {
+        let root = std::env::temp_dir().join(format!("enki-bundle-path-{}", std::process::id()));
+        let runtime = root.join("bin/enki");
+        std::fs::create_dir_all(&runtime).unwrap();
+        let name = if cfg!(windows) { "sharedai-daemon.exe" } else { "sharedai-daemon" };
+        std::fs::write(runtime.join(name), b"fixture").unwrap();
+        let executable = root.join("bin/app");
+        assert_eq!(bundled_daemon(&executable, "inanna"), Some(runtime.join(name)));
+        for app in ["", "../inanna", "inanna/x", "/inanna"] {
+            assert!(bundled_daemon(&executable, app).is_none());
+        }
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
